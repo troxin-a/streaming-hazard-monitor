@@ -1,0 +1,71 @@
+services:
+#  redis:
+#    image: redis
+#    restart: on-failure
+#    expose:
+#      - 6379
+#    env_file:
+#      - ".env"
+
+  db:
+    image: postgres:18.6
+    command:
+      - '-p 5433'
+    ports:
+      - "5433:5433"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -p5433 -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 20s
+      retries: 3
+    env_file: 
+      - ".env"
+
+  api:
+    image: streaming-api
+    build: .
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - .:/api
+    ports:
+      - "8000:8000"
+    environment:
+      - POSTGRES_HOST=db
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+
+
+#  core:
+#    image: fgias-core-base:latest
+#    build:
+#      context: .
+#      dockerfile: core.Dockerfile
+#    command: python3 manage.py runserver
+#    ports:
+#      - "8000:8000"
+#    volumes:
+#      - ./core:/app
+#    environment:
+#      - PYTHONUNBUFFERED=1
+#    network_mode: "host"
+
+#  celery:
+#    build: .
+#    tty: true
+#    command: celery -A config worker -B -l INFO
+#    restart: on-failure
+#    volumes:
+#      - .:/api
+#    depends_on:
+#      - redis
+#      - db
+#      - api
+#    env_file:
+#      - ".env"
+
+volumes:
+  postgres-data:

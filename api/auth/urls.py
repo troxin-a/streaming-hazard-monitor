@@ -14,4 +14,4 @@ class AuthURL(BaseURL):
         self.refresh: str = '/token/refresh/'
 
 
-auth_url = AuthURL()
+auth_url = AuthURL(Path(__file__).parent.parent.name)

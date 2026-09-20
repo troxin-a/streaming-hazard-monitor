@@ -2,10 +2,8 @@ from fastapi import FastAPI
 from fastapi_pagination import add_pagination
 from starlette.middleware.cors import CORSMiddleware
 
-from api.auth.routers import auth_router
-from api.auth.urls import auth_url
-from api.user.routers import user_router
-from api.user.urls import user_url
+from receiver.routers import telemetry_router
+from receiver.urls import telemetry_url
 from shared.config.settings import config
 
 DEBUG: bool = config.app.DEBUG
@@ -21,14 +19,13 @@ SWAGGER_UI_SETTINGS = {
 }
 
 app = FastAPI(
-    title='Streaming hazard monitor',
-    docs_url='/api/docs/',
+    title='Open telemetry receiver',
+    docs_url='/receiver/docs/',
     debug=DEBUG,
     swagger_ui_parameters=SWAGGER_UI_SETTINGS,
 )
 
-app.include_router(auth_router, prefix=auth_url(), tags=['auth'])
-app.include_router(user_router, prefix=user_url(), tags=['user'])
+app.include_router(telemetry_router, prefix=telemetry_url(), tags=['telemetry'])
 
 add_pagination(app)
 

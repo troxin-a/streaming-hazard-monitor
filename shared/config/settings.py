@@ -2,7 +2,6 @@ import os
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from sqlalchemy import make_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -19,14 +18,10 @@ class EnvSettings(BaseSettings):
 
 class AppSettings(EnvSettings):
     DEBUG: bool = False
-    ENV_TYPE: str = 'dev'
-    BACK_URL: str = '127.0.0.1'
-    FRONT_URL: str = '127.0.0.1'
 
 
 class JWTSettings(EnvSettings):
     SECRET_KEY: str = 'secret_key'
-    ALGORITHM: str = 'HS256'
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_MINUTES_REMEMBER: int = 60 * 24 * 7
@@ -34,7 +29,6 @@ class JWTSettings(EnvSettings):
 
 class DatabaseSettings(EnvSettings):
     POSTGRES_DB: str
-    POSTGRES_TEST_DB: str = 'test_db'
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
     POSTGRES_HOST: str
@@ -58,6 +52,7 @@ class DatabaseSettings(EnvSettings):
         self._database_url = value
 
     def get_test_db_url(self, name: str) -> str:
+        """Get URL of a database by its name on the configured server."""
         user, passwd = self.POSTGRES_USER, self.POSTGRES_PASSWORD
         host, port = self.POSTGRES_HOST, self.POSTGRES_PORT
         return f'postgresql+asyncpg://{user}:{passwd}@{host}:{port}/{name}'
@@ -66,30 +61,6 @@ class DatabaseSettings(EnvSettings):
     def root_database_url(self):
         """URL root database."""
         return self.get_test_db_url('postgres')
-
-    @property
-    def test_database_url(self):
-        """URL test's database."""
-        return self.get_test_db_url(self.POSTGRES_TEST_DB)
-
-    @property
-    def test_sqlite_db_url(self):
-        """URL of test SQLite database."""
-        return 'sqlite+aiosqlite:///:memory:'
-
-    @property
-    def is_sqlite(self):
-        """Check database driver name."""
-        database_url = self.database_url
-        db_url = make_url(database_url)
-        return db_url.drivername == 'sqlite+aiosqlite'
-
-    @property
-    def is_psql(self):
-        """Check database driver name."""
-        database_url = self.database_url
-        db_url = make_url(database_url)
-        return db_url.drivername == 'postgresql+asyncpg'
 
 
 # class CelerySettings(EnvSettings):

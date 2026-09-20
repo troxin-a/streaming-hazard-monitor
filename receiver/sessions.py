@@ -43,6 +43,6 @@ class UserSession(BaseSession):
     async def get_users(self) -> Page[UserDB]:
         """Get all users."""
         async with self.session.begin():
-            query = select(UserDB).order_by(UserDB.create_date.desc())
+            query = select(UserDB).order_by(UserDB.created_at.desc())
             a = await apaginate(self.session, query)
             return a

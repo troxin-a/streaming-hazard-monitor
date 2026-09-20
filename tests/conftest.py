@@ -12,10 +12,10 @@ from shared.config.session import get_async_session
 from shared.config.settings import config
 
 pytest_plugins = [
+    'tests.fixtures.building',
     'tests.fixtures.users',
 ]
 
-config.app.ENV_TYPE = 'test'
 test_db = f'test_{uuid.uuid4()}'.replace('-', '')
 
 
@@ -57,8 +57,7 @@ async def create_test_database():
             await conn.execute(text(f'DROP DATABASE IF EXISTS {test_db} with (force)'))
 
 
-config.database.POSTGRES_TEST_DB = test_db
-db_url = config.database.test_database_url
+db_url = config.database.get_test_db_url(test_db)
 config.database.database_url = db_url
 engine_test = create_async_engine(db_url)
 

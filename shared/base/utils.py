@@ -1,3 +1,5 @@
+from typing import NoReturn
+
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 from starlette import status
@@ -12,7 +14,7 @@ def get_error_message(err: IntegrityError, conflict: bool = False) -> str:
     return error
 
 
-def handle_error(error: IntegrityError):
+def handle_error(error: IntegrityError) -> NoReturn:
     """Handle error message."""
     error_text = get_error_message(error)
     if 'not present in table' in error_text or 'FOREIGN KEY' in error_text:

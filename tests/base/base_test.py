@@ -16,6 +16,7 @@ class BaseTestCase:
     transport = ASGITransport(app=app)
     password: str = '123qwe456rty!S'
     hashed_password = HashPassword.hash_password(password)
+    unknown_uuid: str = '00000000-0000-0000-0000-000000000000'
 
     async def _login(self, username: str) -> tuple[str, str]:
         """Login."""

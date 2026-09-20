@@ -7,6 +7,7 @@ from alembic import context
 
 from shared import BaseDBModel
 from shared.config.settings import config as conf
+import alembic_postgresql_enum  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

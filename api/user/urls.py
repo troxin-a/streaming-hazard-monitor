@@ -10,6 +10,8 @@ class UserURL(BaseURL):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.users_list: str = '/'
+        self.current_user: str = '/me/'
+        self.user_detail: str = '/{uuid}/'
 
 
 user_url = UserURL(Path(__file__).parent.parent.name)

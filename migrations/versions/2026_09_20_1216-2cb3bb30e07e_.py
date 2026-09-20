@@ -26,8 +26,8 @@ def upgrade() -> None:
     sa.Column('name', sa.String(), nullable=False),
     sa.Column('password', sa.String(), nullable=False),
     sa.Column('uuid', sa.UUID(), nullable=False),
-    sa.Column('create_date', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.Column('update_date', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.PrimaryKeyConstraint('uuid')
     )
     op.create_index(op.f('ix_users_username'), 'users', ['username'], unique=True)

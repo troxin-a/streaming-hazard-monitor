@@ -40,3 +40,10 @@ class JWTBearer(HTTPBearer):
         if not user:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='User inactive')
         return user
+
+
+async def current_superuser(user: UserDB = Depends(JWTBearer().current_user)) -> UserDB:
+    """Current user with superuser rights."""
+    if not user.is_superuser:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Not enough permissions')
+    return user

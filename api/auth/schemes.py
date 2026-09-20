@@ -1,4 +1,5 @@
 from typing import Any
+from uuid import UUID
 
 from fastapi import HTTPException
 from pydantic import model_validator
@@ -11,6 +12,7 @@ class RegistrationRequestScheme(BaseScheme):
     """Registration request Scheme."""
     username: str
     name: str
+    building_uuid: UUID
     password1: str
     password2: str
 

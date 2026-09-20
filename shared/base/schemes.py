@@ -22,7 +22,7 @@ class ExceptionValidationScheme(BaseModel):
 class BaseScheme(BaseModel):
     """Base Scheme."""
 
-    @field_serializer('create_date', 'update_date', check_fields=False)
+    @field_serializer('created_at', 'updated_at', check_fields=False)
     def custom_datetime_format(self, dt: datetime):
         """Custom datetime format."""
         return datetime.strftime(dt, "%Y-%m-%d, %H:%M:%S")

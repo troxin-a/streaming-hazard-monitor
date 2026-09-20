@@ -1,3 +1,5 @@
+from typing import Any
+
 from sqlalchemy import Executable, Result
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,5 +24,12 @@ class BaseSession:
         """Execute statement, turning an integrity error into an http error."""
         try:
             return await self.session.execute(statement)
+        except IntegrityError as err:
+            handle_error(err)
+
+    async def scalar(self, statement: Executable) -> Any:
+        """Execute statement returning its first column, turning an integrity error into an http error."""
+        try:
+            return await self.session.scalar(statement)
         except IntegrityError as err:
             handle_error(err)

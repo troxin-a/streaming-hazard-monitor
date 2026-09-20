@@ -5,7 +5,7 @@ from fastapi_pagination import Page
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from api.auth.auth import current_superuser, JWTBearer
+from api.auth.auth import current_director, current_superuser, JWTBearer
 from api.company.sessions import CompanySession
 from api.company.urls import company_url
 from shared.base.responses import responses
@@ -26,25 +26,10 @@ company_router = FastAPIRouter(dependencies=[Depends(JWTBearer())])
 )
 async def companies_list(
         session: AsyncSession = Depends(get_async_session),
-        _: UserDB = Depends(JWTBearer().current_user),
+        user: UserDB = Depends(JWTBearer().current_user),
 ) -> Page[CompanyDB]:
     """Companies list."""
-    return await CompanySession(session).get_companies()
-
-
-@company_router.get(
-    company_url.company_detail,
-    response_model=CompanyScheme,
-    responses=responses(CompanyScheme, statuses=[status.HTTP_404_NOT_FOUND]),
-    description='Company detail',
-)
-async def company_detail(
-        uuid: UUID,
-        session: AsyncSession = Depends(get_async_session),
-        _: UserDB = Depends(JWTBearer().current_user),
-) -> CompanyDB:
-    """Company detail."""
-    return await CompanySession(session).get_company(uuid)
+    return await CompanySession(session).get_companies(user)
 
 
 @company_router.post(
@@ -67,6 +52,21 @@ async def company_create(
     return await CompanySession(session).create_company(body)
 
 
+@company_router.get(
+    company_url.company_detail,
+    response_model=CompanyScheme,
+    responses=responses(CompanyScheme, statuses=[status.HTTP_404_NOT_FOUND]),
+    description='Company detail',
+)
+async def company_detail(
+        uuid: UUID,
+        session: AsyncSession = Depends(get_async_session),
+        user: UserDB = Depends(JWTBearer().current_user),
+) -> CompanyDB:
+    """Company detail."""
+    return await CompanySession(session).get_company(uuid, user)
+
+
 @company_router.patch(
     company_url.company_detail,
     response_model=CompanyScheme,
@@ -77,14 +77,14 @@ async def company_update(
         uuid: UUID,
         body: CompanyUpdateScheme,
         session: AsyncSession = Depends(get_async_session),
-        _: UserDB = Depends(current_superuser),
+        user: UserDB = Depends(current_director),
 ) -> CompanyDB:
     """Update company."""
-    return await CompanySession(session).update_company(uuid, body)
+    return await CompanySession(session).update_company(uuid, body, user)
 
 
 @company_router.delete(
-    company_url.company_detail,
+    company_url.company_delete,
     response_model=None,
     responses=responses(
         None,

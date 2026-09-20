@@ -12,6 +12,8 @@ class CompanyURL(BaseURL):
         self.companies_list: str = '/'
         self.company_create: str = '/'
         self.company_detail: str = '/{uuid}/'
+        self.company_update: str = '/{uuid}/'
+        self.company_delete: str = '/{uuid}/'
 
 
 company_url = CompanyURL(Path(__file__).parent.parent.name)

@@ -2,6 +2,7 @@ from starlette import status
 
 from tests.base.base_test import BaseTestCase
 from tests.conftest import get_url_size
+from tests.fixtures.users import USER_COUNT
 
 
 class TestCaseUserList(BaseTestCase):
@@ -23,6 +24,29 @@ class TestCaseUserList(BaseTestCase):
         url = get_url_size(self.url, size, page)
         response = await self.make_get(url, user.username)
         assert len(response['items']) == size
+
+    async def test_user_list_own_building(self, user, neighbour, other_director):
+        """Test an employee sees only the users of their building."""
+        response = await self.make_get(get_url_size(self.url, 50), user.username)
+        assert response['total'] == USER_COUNT
+        assert f'{neighbour.uuid}' not in [item['uuid'] for item in response['items']]
+
+    async def test_user_list_own_company(self, director, user, neighbour, other_director):
+        """Test a director sees the users of every building of their company."""
+        response = await self.make_get(get_url_size(self.url, 50), director.username)
+        assert response['total'] == USER_COUNT + 2
+        assert f'{neighbour.uuid}' in [item['uuid'] for item in response['items']]
+
+    async def test_user_list_without_building(self, user_without_building, user):
+        """Test an employee without a building sees only themselves."""
+        response = await self.make_get(self.url, user_without_building.username)
+        assert response['total'] == 1
+        assert response['items'][0]['uuid'] == f'{user_without_building.uuid}'
+
+    async def test_user_list_superuser(self, superuser, user, neighbour, other_director):
+        """Test superuser sees every user."""
+        response = await self.make_get(get_url_size(self.url, 50), superuser.username)
+        assert response['total'] == USER_COUNT + 3
 
     async def test_user_list_401(self, user):
         """Test get user list by non-authenticated user."""

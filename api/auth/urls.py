@@ -9,7 +9,6 @@ class AuthURL(BaseURL):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.registration: str = '/registration/'
         self.login: str = '/login/'
         self.refresh: str = '/token/refresh/'
 

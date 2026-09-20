@@ -6,6 +6,7 @@ from starlette import status
 from api.auth.services.token import AccessToken
 from api.user.sessions import UserSession
 from shared.config.session import get_async_session
+from shared.user.enums import UserRole
 from shared.user.models import UserDB
 
 
@@ -45,5 +46,12 @@ class JWTBearer(HTTPBearer):
 async def current_superuser(user: UserDB = Depends(JWTBearer().current_user)) -> UserDB:
     """Current user with superuser rights."""
     if not user.is_superuser:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Not enough permissions')
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Access denied')
+    return user
+
+
+async def current_director(user: UserDB = Depends(JWTBearer().current_user)) -> UserDB:
+    """Current user with director rights."""
+    if not user.is_superuser and user.role != UserRole.DIRECTOR:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Access denied')
     return user

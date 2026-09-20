@@ -12,6 +12,8 @@ class BuildingURL(BaseURL):
         self.buildings_list: str = '/'
         self.building_create: str = '/'
         self.building_detail: str = '/{uuid}/'
+        self.building_update: str = '/{uuid}/'
+        self.building_delete: str = '/{uuid}/'
 
 
 building_url = BuildingURL(Path(__file__).parent.parent.name)

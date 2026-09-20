@@ -37,7 +37,7 @@ class TestCaseCurrentUser(BaseTestCase):
 
     async def test_current_user_405(self, user):
         """Test current user wrong request method."""
-        await self.make_delete(self.url, user.username, status_code=status.HTTP_405_METHOD_NOT_ALLOWED)
+        await self.make_put(self.url, user.username, {}, status_code=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 class TestCaseUserDetail(BaseTestCase):
@@ -54,12 +54,29 @@ class TestCaseUserDetail(BaseTestCase):
             'uuid': f'{building.company_uuid}', 'name': COMPANY_DATA['name'],
         }
 
-    async def test_user_detail_without_building(self, user, superuser):
+    async def test_user_detail_without_building(self, superuser):
         """Test user detail for a user that belongs to no building."""
-        response = await self.make_get(self.url.format(uuid=superuser.uuid), user.username)
+        response = await self.make_get(self.url.format(uuid=superuser.uuid), superuser.username)
         assert response == {
             'uuid': f'{superuser.uuid}', 'name': superuser.name, 'is_superuser': True, 'building': None,
         }
+
+    async def test_user_detail_another_building(self, user, neighbour):
+        """Test user detail of an employee of another building."""
+        await self.make_get(
+            self.url.format(uuid=neighbour.uuid), user.username, status_code=status.HTTP_404_NOT_FOUND,
+        )
+
+    async def test_user_detail_another_building_by_director(self, director, neighbour):
+        """Test user detail of an employee of another building of the same company."""
+        response = await self.make_get(self.url.format(uuid=neighbour.uuid), director.username)
+        assert response['uuid'] == f'{neighbour.uuid}'
+
+    async def test_user_detail_another_company(self, director, other_director):
+        """Test user detail of a user of another company."""
+        await self.make_get(
+            self.url.format(uuid=other_director.uuid), director.username, status_code=status.HTTP_404_NOT_FOUND,
+        )
 
     async def test_user_detail_401(self, user):
         """Test user detail by non-authenticated user."""

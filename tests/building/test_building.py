@@ -14,19 +14,36 @@ class TestCaseBuildingList(BaseTestCase):
     """Building list test suite."""
     url = '/building/'
 
-    async def test_building_list(self, user):
-        """Test building list is available to an employee."""
+    async def test_building_list(self, user, building, other_director):
+        """Test an employee sees only the buildings of their company."""
         response = await self.make_get(self.url, user.username)
         assert response['total'] == 1
-        assert response['items'][0]['name'] == BUILDING_DATA['name']
+        assert response['items'][0]['uuid'] == f'{building.uuid}'
         assert response['items'][0]['company']['name'] == COMPANY_DATA['name']
 
-    async def test_building_list_pagination(self, superuser, building, company):
+    async def test_building_list_own_building(self, user, second_building, other_director):
+        """Test an employee sees only their own building."""
+        response = await self.make_get(self.url, user.username)
+        assert response['total'] == 1
+        assert response['items'][0]['uuid'] == f'{user.building_uuid}'
+
+    async def test_building_list_without_building(self, user_without_building, building):
+        """Test an employee without a building sees no buildings."""
+        response = await self.make_get(self.url, user_without_building.username)
+        assert response['total'] == 0
+
+    async def test_building_list_own_company(self, director, second_building, other_director):
+        """Test a director sees every building of their company."""
+        response = await self.make_get(self.url, director.username)
+        assert response['total'] == 2
+
+    async def test_building_list_superuser(self, superuser, building, other_director):
+        """Test superuser sees every building."""
+        response = await self.make_get(self.url, superuser.username)
+        assert response['total'] == 2
+
+    async def test_building_list_pagination(self, superuser, building, other_director):
         """Test building list respects page size."""
-        await self.make_post(
-            self.url, superuser.username,
-            {**NEW_BUILDING, 'company_uuid': f'{company.uuid}'}, status.HTTP_201_CREATED,
-        )
         url = get_url_size(self.url, 1)
         response = await self.make_get(url, superuser.username)
         assert response['total'] == 2
@@ -53,6 +70,25 @@ class TestCaseBuildingDetail(BaseTestCase):
         assert response['name'] == BUILDING_DATA['name']
         assert response['company'] == {'uuid': f'{building.company_uuid}', 'name': COMPANY_DATA['name']}
 
+    async def test_building_detail_another_building(self, user, second_building):
+        """Test building detail of another building of the same company."""
+        await self.make_get(
+            self.url.format(uuid=second_building.uuid), user.username, status_code=status.HTTP_404_NOT_FOUND,
+        )
+
+    async def test_building_detail_another_building_by_director(self, director, second_building):
+        """Test building detail of another building of the same company by its director."""
+        response = await self.make_get(self.url.format(uuid=second_building.uuid), director.username)
+        assert response['uuid'] == f'{second_building.uuid}'
+
+    async def test_building_detail_foreign_company(self, user, other_director):
+        """Test building detail of another company."""
+        await self.make_get(
+            self.url.format(uuid=other_director.building_uuid),
+            user.username,
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
+
     async def test_building_detail_401(self, building):
         """Test building detail by non-authenticated user."""
         await self.make_get(self.url.format(uuid=building.uuid), status_code=status.HTTP_401_UNAUTHORIZED)
@@ -74,6 +110,13 @@ class TestCaseBuildingCreate(BaseTestCase):
     """Building create test suite."""
     url = '/building/'
 
+    async def test_building_create_by_director(self, director, building):
+        """Test building create by the director of the company."""
+        data = {**NEW_BUILDING, 'company_uuid': f'{building.company_uuid}'}
+        response = await self.make_post(self.url, director.username, data, status.HTTP_201_CREATED)
+        assert response['name'] == NEW_BUILDING['name']
+        assert response['company']['uuid'] == f'{building.company_uuid}'
+
     async def test_building_create(self, superuser, company):
         """Test building create by superuser."""
         data = {**NEW_BUILDING, 'company_uuid': f'{company.uuid}'}
@@ -81,16 +124,22 @@ class TestCaseBuildingCreate(BaseTestCase):
         assert response['name'] == NEW_BUILDING['name']
         assert response['company'] == {'uuid': f'{company.uuid}', 'name': COMPANY_DATA['name']}
 
+    async def test_building_create_foreign_company(self, director, company):
+        """Test building create in another company."""
+        data = {**NEW_BUILDING, 'company_uuid': f'{company.uuid}'}
+        response = await self.make_post(self.url, director.username, data, status.HTTP_404_NOT_FOUND)
+        assert response['detail'] == 'Company not found'
+
     async def test_building_create_401(self, company):
         """Test building create by non-authenticated user."""
         data = {**NEW_BUILDING, 'company_uuid': f'{company.uuid}'}
         await self.make_post(self.url, None, data, status.HTTP_401_UNAUTHORIZED)
 
-    async def test_building_create_403(self, user, company):
+    async def test_building_create_403(self, user, building):
         """Test building create by an employee."""
-        data = {**NEW_BUILDING, 'company_uuid': f'{company.uuid}'}
+        data = {**NEW_BUILDING, 'company_uuid': f'{building.company_uuid}'}
         response = await self.make_post(self.url, user.username, data, status.HTTP_403_FORBIDDEN)
-        assert response['detail'] == 'Not enough permissions'
+        assert response['detail'] == 'Access denied'
 
     async def test_building_create_404(self, superuser):
         """Test building create for unknown company."""
@@ -106,6 +155,12 @@ class TestCaseBuildingUpdate(BaseTestCase):
     """Building update test suite."""
     url = '/building/{uuid}/'
 
+    async def test_building_update_by_director(self, director, building):
+        """Test building update by the director of the company."""
+        response = await self.make_patch(self.url.format(uuid=building.uuid), director.username, NEW_BUILDING)
+        assert response['name'] == NEW_BUILDING['name']
+        assert response['company']['uuid'] == f'{building.company_uuid}'
+
     async def test_building_update(self, superuser, building):
         """Test building update by superuser."""
         response = await self.make_patch(self.url.format(uuid=building.uuid), superuser.username, NEW_BUILDING)
@@ -113,10 +168,24 @@ class TestCaseBuildingUpdate(BaseTestCase):
         assert response['company']['uuid'] == f'{building.company_uuid}'
 
     async def test_building_update_company(self, superuser, building, company):
-        """Test building is moved to another company."""
+        """Test building is moved to another company by superuser."""
         data = {'company_uuid': f'{company.uuid}'}
         response = await self.make_patch(self.url.format(uuid=building.uuid), superuser.username, data)
         assert response['company']['uuid'] == f'{company.uuid}'
+
+    async def test_building_update_foreign_company(self, director, building, company):
+        """Test building is not moved to another company by a director."""
+        data = {'company_uuid': f'{company.uuid}'}
+        response = await self.make_patch(
+            self.url.format(uuid=building.uuid), director.username, data, status.HTTP_404_NOT_FOUND,
+        )
+        assert response['detail'] == 'Company not found'
+
+    async def test_building_update_foreign_building(self, other_director, building):
+        """Test building update by a director of another company."""
+        await self.make_patch(
+            self.url.format(uuid=building.uuid), other_director.username, NEW_BUILDING, status.HTTP_404_NOT_FOUND,
+        )
 
     async def test_building_update_401(self, building):
         """Test building update by non-authenticated user."""
@@ -125,11 +194,11 @@ class TestCaseBuildingUpdate(BaseTestCase):
         )
 
     async def test_building_update_403(self, user, building):
-        """Test building update by an employee."""
+        """Test building update by an employee of that company."""
         response = await self.make_patch(
             self.url.format(uuid=building.uuid), user.username, NEW_BUILDING, status.HTTP_403_FORBIDDEN,
         )
-        assert response['detail'] == 'Not enough permissions'
+        assert response['detail'] == 'Access denied'
 
     async def test_building_update_404(self, superuser):
         """Test building update for unknown building."""
@@ -142,6 +211,16 @@ class TestCaseBuildingDelete(BaseTestCase):
     """Building delete test suite."""
     url = '/building/{uuid}/'
 
+    async def test_building_delete_by_director(self, director, building):
+        """Test building without users is deleted by the director of the company."""
+        data = {**NEW_BUILDING, 'company_uuid': f'{building.company_uuid}'}
+        created = await self.make_post('/building/', director.username, data, status.HTTP_201_CREATED)
+
+        await self.make_delete(self.url.format(uuid=created['uuid']), director.username)
+        await self.make_get(
+            self.url.format(uuid=created['uuid']), director.username, status_code=status.HTTP_404_NOT_FOUND,
+        )
+
     async def test_building_delete(self, superuser, company):
         """Test building without users is deleted by superuser."""
         data = {**NEW_BUILDING, 'company_uuid': f'{company.uuid}'}
@@ -150,6 +229,12 @@ class TestCaseBuildingDelete(BaseTestCase):
         await self.make_delete(self.url.format(uuid=created['uuid']), superuser.username)
         await self.make_get(
             self.url.format(uuid=created['uuid']), superuser.username, status_code=status.HTTP_404_NOT_FOUND,
+        )
+
+    async def test_building_delete_foreign_building(self, other_director, building):
+        """Test building delete by a director of another company."""
+        await self.make_delete(
+            self.url.format(uuid=building.uuid), other_director.username, status_code=status.HTTP_404_NOT_FOUND,
         )
 
     async def test_building_delete_401(self, building):

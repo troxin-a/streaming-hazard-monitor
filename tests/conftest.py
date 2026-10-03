@@ -7,6 +7,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from api.main import app
+from receiver.main import app as receiver_app
 from shared.base.models import BaseDBModel
 from shared.config.session import get_async_session
 from shared.config.settings import config
@@ -15,6 +16,7 @@ pytest_plugins = [
     'tests.fixtures.building',
     'tests.fixtures.company',
     'tests.fixtures.device',
+    'tests.fixtures.reading',
     'tests.fixtures.users',
 ]
 
@@ -84,6 +86,7 @@ async def override_async_session() -> AsyncGenerator[AsyncSession, None]:
 if not hasattr(app, 'dependency_overrides'):
     app.dependency_overrides = {}
 app.dependency_overrides[get_async_session] = override_async_session
+receiver_app.dependency_overrides[get_async_session] = override_async_session
 
 
 @pytest.fixture(scope='function')

@@ -5,11 +5,11 @@ from shared.base.urls import BaseURL
 
 class TelemetryURL(BaseURL):
     """Telemetry URL."""
-    module = Path(__file__).parent.name
+    module = 'telemetry'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.telemetry: str = '/telemetry/'
+        self.telemetry: str = '/'
 
 
-telemetry_url = TelemetryURL(Path(__file__).parent.parent.name)
+telemetry_url = TelemetryURL(Path(__file__).parent.name)

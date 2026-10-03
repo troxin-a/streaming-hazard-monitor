@@ -1,5 +1,6 @@
 import LogoutIcon from '@mui/icons-material/Logout';
 import MenuIcon from '@mui/icons-material/Menu';
+import PasswordIcon from '@mui/icons-material/Password';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
@@ -16,6 +17,7 @@ import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router';
 
 import { ACCESS_LEVEL_LABELS, getAccessLevel, hasAccess } from '@/features/auth/access';
+import { ChangePasswordDialog } from '@/features/auth/ChangePasswordDialog';
 import { logout, useCurrentUser } from '@/features/auth/hooks';
 import { APP_NAME } from '@/shared/config';
 
@@ -57,6 +59,7 @@ function Navigation({ onNavigate }: NavigationProps) {
 export function AppLayout() {
   const user = useCurrentUser();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const closeMobile = () => setMobileOpen(false);
 
   return (
@@ -84,6 +87,15 @@ export function AppLayout() {
             variant="outlined"
             sx={{ color: 'inherit', borderColor: 'currentColor' }}
           />
+          <Tooltip title="Сменить пароль">
+            <IconButton
+              color="inherit"
+              aria-label="Сменить пароль"
+              onClick={() => setPasswordOpen(true)}
+            >
+              <PasswordIcon />
+            </IconButton>
+          </Tooltip>
           <Tooltip title="Выйти">
             <IconButton color="inherit" edge="end" aria-label="Выйти" onClick={logout}>
               <LogoutIcon />
@@ -91,6 +103,7 @@ export function AppLayout() {
           </Tooltip>
         </Toolbar>
       </AppBar>
+      {passwordOpen && <ChangePasswordDialog onClose={() => setPasswordOpen(false)} />}
 
       <Drawer
         variant="temporary"

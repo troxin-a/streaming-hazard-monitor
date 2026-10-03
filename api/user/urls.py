@@ -12,6 +12,7 @@ class UserURL(BaseURL):
         self.users_list: str = '/'
         self.user_create: str = '/'
         self.current_user: str = '/me/'
+        self.current_user_password: str = '/me/password/'
         self.user_detail: str = '/{uuid}/'
         self.user_update: str = '/{uuid}/'
         self.user_delete: str = '/{uuid}/'

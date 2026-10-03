@@ -2,7 +2,7 @@ from typing import Any
 from uuid import UUID
 
 from fastapi import HTTPException
-from pydantic import model_validator
+from pydantic import Field, model_validator
 from starlette import status
 
 from shared.base.schemes import BaseScheme
@@ -70,6 +70,24 @@ class UserUpdateScheme(BaseScheme):
     def password_validator(self) -> 'UserUpdateScheme':
         """Validate the password fields."""
         if (self.password1 or self.password2) and self.password1 != self.password2:
+            detail = [{
+                'field': 'password1',
+                'message': 'Passwords must be the same',
+            }]
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail)
+        return self
+
+
+class UserPasswordScheme(BaseScheme):
+    """Own password change scheme."""
+    old_password: str
+    password1: str = Field(min_length=1)
+    password2: str
+
+    @model_validator(mode='after')
+    def password_validator(self) -> 'UserPasswordScheme':
+        """Validate the password fields."""
+        if self.password1 != self.password2:
             detail = [{
                 'field': 'password1',
                 'message': 'Passwords must be the same',

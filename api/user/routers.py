@@ -13,7 +13,9 @@ from shared.base.responses import responses
 from shared.base.router import FastAPIRouter
 from shared.config.session import get_async_session
 from shared.user.models import UserDB
-from shared.user.schemes import UserCreateScheme, UserSavedScheme, UserScheme, UserUpdateScheme
+from shared.user.schemes import (
+    UserCreateScheme, UserPasswordScheme, UserSavedScheme, UserScheme, UserUpdateScheme,
+)
 
 user_router = FastAPIRouter(dependencies=[Depends(JWTBearer())])
 
@@ -65,6 +67,22 @@ async def current_user(
 ) -> UserDB:
     """Current user."""
     return await UserSession(session).get_user(user.uuid, user)
+
+
+@user_router.post(
+    user_url.current_user_password,
+    response_model=None,
+    responses=responses(None, response_status=status.HTTP_204_NO_CONTENT, statuses=[status.HTTP_204_NO_CONTENT]),
+    status_code=status.HTTP_204_NO_CONTENT,
+    description='Change the password of the current user',
+)
+async def change_own_password(
+        body: UserPasswordScheme,
+        session: AsyncSession = Depends(get_async_session),
+        user: UserDB = Depends(JWTBearer().current_user),
+) -> None:
+    """Change the password of the current user."""
+    await UserSession(session).change_own_password(body, user)
 
 
 @user_router.get(

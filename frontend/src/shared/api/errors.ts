@@ -19,6 +19,7 @@ const DETAIL_TRANSLATIONS: Record<string, string> = {
   'Device has no api key': 'У датчика нет API-ключа',
   'Device already has an api key': 'У датчика уже есть API-ключ',
   'Passwords must be the same': 'Пароли не совпадают',
+  'Incorrect password': 'Текущий пароль указан неверно',
   'Building is required for an employee': 'Сотруднику нужно указать здание',
   'Company is required': 'Укажите компанию',
 };

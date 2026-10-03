@@ -14,7 +14,7 @@ from shared.building.models import BuildingDB
 from shared.company.models import CompanyDB
 from shared.user.enums import UserRole
 from shared.user.models import UserDB
-from shared.user.schemes import UserCreateScheme, UserUpdateScheme
+from shared.user.schemes import UserCreateScheme, UserPasswordScheme, UserUpdateScheme
 
 
 class UserSession(BaseSession):
@@ -79,6 +79,16 @@ class UserSession(BaseSession):
                 await self._check_building(building_uuid, company_uuid)
 
             return await self.scalar(update(UserDB).filter_by(uuid=uuid).values(**fields).returning(UserDB))
+
+    async def change_own_password(self, data: UserPasswordScheme, user: UserDB) -> None:
+        """Change the password of the user after checking the current one."""
+        async with self.session.begin():
+            if not HashPassword.check_password(user.password, data.old_password):
+                detail = [{'field': 'old_password', 'message': 'Incorrect password'}]
+                raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail)
+
+            password = HashPassword.hash_password(data.password1)
+            await self.execute(update(UserDB).filter_by(uuid=user.uuid).values(password=password))
 
     async def delete_user(self, uuid: UUID, author: UserDB) -> None:
         """Delete user of the author company."""

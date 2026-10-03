@@ -89,7 +89,6 @@ export function UserFormDialog({ user, onClose }: UserFormDialogProps) {
         ...restricted,
         name: values.name,
         building_uuid: values.building_uuid || null,
-        ...(values.password1 && { password1: values.password1, password2: values.password2 }),
       });
     }
     return users.create({
@@ -163,20 +162,24 @@ export function UserFormDialog({ user, onClose }: UserFormDialogProps) {
         initialOption={user?.building}
         filter={companyUuid ? (building) => building.company.uuid === companyUuid : undefined}
       />
-      <TextField
-        label={isCreate ? 'Пароль' : 'Новый пароль'}
-        type="password"
-        autoComplete="new-password"
-        {...errorProps(errors.password1)}
-        {...register('password1')}
-      />
-      <TextField
-        label="Повторите пароль"
-        type="password"
-        autoComplete="new-password"
-        {...errorProps(errors.password2)}
-        {...register('password2')}
-      />
+      {isCreate && (
+        <TextField
+          label="Пароль"
+          type="password"
+          autoComplete="new-password"
+          {...errorProps(errors.password1)}
+          {...register('password1')}
+        />
+      )}
+      {isCreate && (
+        <TextField
+          label="Повторите пароль"
+          type="password"
+          autoComplete="new-password"
+          {...errorProps(errors.password2)}
+          {...register('password2')}
+        />
+      )}
     </FormDialog>
   );
 }

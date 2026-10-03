@@ -8,3 +8,9 @@ export interface Credentials {
   password: string;
   remember_me: boolean;
 }
+
+export interface PasswordChange {
+  old_password: string;
+  password1: string;
+  password2: string;
+}

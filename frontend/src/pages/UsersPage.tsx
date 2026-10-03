@@ -70,6 +70,7 @@ export function UsersPage() {
           title="Удалить пользователя?"
           text={`Пользователь «${deleting.name}» будет удалён.`}
           action={() => users.remove(deleting.uuid)}
+          successMessage="Пользователь удалён"
           onClose={() => setDeleting(null)}
         />
       )}

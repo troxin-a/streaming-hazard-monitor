@@ -26,8 +26,10 @@ interface BuildingFormDialogProps {
 
 export function BuildingFormDialog({ building, onClose }: BuildingFormDialogProps) {
   const currentUser = useCurrentUser();
-  const save = useResourceMutation((values: BuildingValues) =>
-    building ? buildings.update(building.uuid, values) : buildings.create(values),
+  const save = useResourceMutation(
+    (values: BuildingValues) =>
+      building ? buildings.update(building.uuid, values) : buildings.create(values),
+    building ? 'Здание изменено' : 'Здание создано',
   );
   // Компанию выбирает только суперпользователь, директор работает в своей.
   const ownCompany = currentUser.is_superuser ? '' : (currentUser.company?.uuid ?? '');

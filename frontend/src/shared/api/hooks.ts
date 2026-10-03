@@ -1,5 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { notify } from '@/shared/lib/notifications';
+
 import type { Listable, PageParams } from './resource';
 
 /** Сколько найденных записей показывает поле с поиском. */
@@ -24,13 +26,19 @@ export function useResourceSearch<T>(resource: Listable<T>, search: string) {
   });
 }
 
-/** Изменяющий запрос, после которого загруженные данные перечитываются с сервера. */
+/**
+ * Изменяющий запрос: при успехе показывает уведомление и перечитывает загруженные данные с сервера.
+ */
 export function useResourceMutation<TVariables = void>(
   mutationFn: (variables: TVariables) => Promise<unknown>,
+  successMessage: string,
 ) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn,
-    onSuccess: () => queryClient.invalidateQueries(),
+    onSuccess: () => {
+      notify(successMessage);
+      return queryClient.invalidateQueries();
+    },
   });
 }

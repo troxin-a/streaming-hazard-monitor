@@ -26,7 +26,10 @@ interface ApiKeyDialogProps {
 export function ApiKeyDialog({ device, onClose }: ApiKeyDialogProps) {
   const [key, setKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const issue = useResourceMutation(() => issueApiKey(device.uuid).then(setKey));
+  const issue = useResourceMutation(
+    () => issueApiKey(device.uuid).then(setKey),
+    'API-ключ выпущен',
+  );
 
   const copy = async () => {
     if (key) {

@@ -33,8 +33,10 @@ interface DeviceFormDialogProps {
 }
 
 export function DeviceFormDialog({ device, onClose }: DeviceFormDialogProps) {
-  const save = useResourceMutation((values: DeviceValues) =>
-    device ? devices.update(device.uuid, values) : devices.create(values),
+  const save = useResourceMutation(
+    (values: DeviceValues) =>
+      device ? devices.update(device.uuid, values) : devices.create(values),
+    device ? 'Датчик изменён' : 'Датчик создан',
   );
   const {
     control,

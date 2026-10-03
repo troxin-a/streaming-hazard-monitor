@@ -21,8 +21,10 @@ interface CompanyFormDialogProps {
 }
 
 export function CompanyFormDialog({ company, onClose }: CompanyFormDialogProps) {
-  const save = useResourceMutation((values: CompanyValues) =>
-    company ? companies.update(company.uuid, values) : companies.create(values),
+  const save = useResourceMutation(
+    (values: CompanyValues) =>
+      company ? companies.update(company.uuid, values) : companies.create(values),
+    company ? 'Компания изменена' : 'Компания создана',
   );
   const {
     register,

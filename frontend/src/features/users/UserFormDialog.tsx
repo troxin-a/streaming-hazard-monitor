@@ -79,6 +79,7 @@ export function UserFormDialog({ user, onClose }: UserFormDialogProps) {
     [isCreate, isSuperuser, targetIsSuperuser],
   );
 
+  const successMessage = user ? 'Пользователь изменён' : 'Пользователь создан';
   const save = useResourceMutation((values: UserValues) => {
     // Роль и компанию бэкенд принимает только от суперпользователя.
     const restricted = isSuperuser
@@ -100,7 +101,7 @@ export function UserFormDialog({ user, onClose }: UserFormDialogProps) {
       password1: values.password1,
       password2: values.password2,
     });
-  });
+  }, successMessage);
 
   const {
     control,

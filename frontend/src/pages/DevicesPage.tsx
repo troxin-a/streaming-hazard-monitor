@@ -86,6 +86,7 @@ export function DevicesPage() {
           title="Удалить датчик?"
           text={`Датчик «${deleting.name}» будет удалён.`}
           action={() => devices.remove(deleting.uuid)}
+          successMessage="Датчик удалён"
           onClose={() => setDeleting(null)}
         />
       )}
@@ -96,6 +97,7 @@ export function DevicesPage() {
           text={`Датчик «${revokingKey.name}» не сможет отправлять показания, пока не получит новый ключ.`}
           confirmLabel="Отозвать"
           action={() => revokeApiKey(revokingKey.uuid)}
+          successMessage="API-ключ отозван"
           onClose={() => setRevokingKey(null)}
         />
       )}

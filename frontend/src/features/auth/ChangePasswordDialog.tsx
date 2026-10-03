@@ -4,6 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
+import { notify } from '@/shared/lib/notifications';
 import { errorProps } from '@/shared/ui/form';
 import { FormDialog } from '@/shared/ui/FormDialog';
 
@@ -28,7 +29,10 @@ interface ChangePasswordDialogProps {
 
 /** Меняет пароль текущего пользователя после проверки текущего пароля. */
 export function ChangePasswordDialog({ onClose }: ChangePasswordDialogProps) {
-  const save = useMutation({ mutationFn: changeOwnPassword });
+  const save = useMutation({
+    mutationFn: changeOwnPassword,
+    onSuccess: () => notify('Пароль изменён'),
+  });
   const {
     register,
     handleSubmit,

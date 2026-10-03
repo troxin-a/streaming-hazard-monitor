@@ -36,6 +36,7 @@ export function CompaniesPage() {
           title="Удалить компанию?"
           text={`Компания «${deleting.name}» будет удалена.`}
           action={() => companies.remove(deleting.uuid)}
+          successMessage="Компания удалена"
           onClose={() => setDeleting(null)}
         />
       )}

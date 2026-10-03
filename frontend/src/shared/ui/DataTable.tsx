@@ -2,8 +2,8 @@ import SearchIcon from '@mui/icons-material/Search';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import InputAdornment from '@mui/material/InputAdornment';
-import LinearProgress from '@mui/material/LinearProgress';
 import Paper from '@mui/material/Paper';
+import Skeleton from '@mui/material/Skeleton';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -20,6 +20,8 @@ import type { Listable } from '@/shared/api/resource';
 import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
 
 const PAGE_SIZES = [10, 25, 50];
+/** Высота заглушки на время первой загрузки, примерно как у таблицы с несколькими строками. */
+const SKELETON_HEIGHT = 280;
 
 export interface Column<T> {
   header: string;
@@ -46,14 +48,14 @@ export function DataTable<T extends { uuid: string }>({
   const [size, setSize] = useState(PAGE_SIZES[0]);
   const [searchText, setSearchText] = useState('');
   const search = useDebouncedValue(searchText.trim());
-  const { data, isPending, isError, error, isFetching, refetch } = useResourcePage(resource, {
+  const { data, isPending, isError, error, refetch } = useResourcePage(resource, {
     page: page + 1,
     size,
     search,
   });
 
   if (isPending) {
-    return <LinearProgress aria-label="Загрузка" />;
+    return <Skeleton variant="rounded" height={SKELETON_HEIGHT} aria-label="Загрузка" />;
   }
 
   if (isError) {
@@ -101,7 +103,6 @@ export function DataTable<T extends { uuid: string }>({
           },
         }}
       />
-      <LinearProgress sx={{ visibility: isFetching ? 'visible' : 'hidden' }} aria-hidden />
       <TableContainer>
         <Table>
           <TableHead>

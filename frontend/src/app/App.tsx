@@ -3,6 +3,9 @@ import { ThemeProvider } from '@mui/material/styles';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from 'react-router/dom';
 
+import { GlobalProgress } from '@/shared/ui/GlobalProgress';
+import { Notifications } from '@/shared/ui/Notifications';
+
 import { router } from './router';
 import { theme } from './theme';
 
@@ -13,8 +16,10 @@ export function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <QueryClientProvider client={queryClient}>
+        <GlobalProgress />
         <RouterProvider router={router} />
       </QueryClientProvider>
+      <Notifications />
     </ThemeProvider>
   );
 }

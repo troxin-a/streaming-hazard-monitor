@@ -1,3 +1,5 @@
+import { notify } from '@/shared/lib/notifications';
+
 import { translateApiError } from './errors';
 import { tokenStorage, type Tokens } from './tokenStorage';
 
@@ -59,6 +61,7 @@ async function requestNewTokens(): Promise<Tokens | null> {
   const response = await send(REFRESH_PATH, { method: 'POST', body: { refresh: current.refresh } });
   if (response.status === HTTP_UNAUTHORIZED) {
     tokenStorage.clear();
+    notify('Сеанс истёк. Войдите заново.', 'info');
     return null;
   }
   if (!response.ok) {

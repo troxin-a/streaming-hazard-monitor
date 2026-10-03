@@ -15,6 +15,8 @@ interface ConfirmDialogProps {
   text: string;
   confirmLabel?: string;
   action: () => Promise<unknown>;
+  /** Текст уведомления после успешного выполнения. */
+  successMessage: string;
   onClose: () => void;
 }
 
@@ -24,9 +26,10 @@ export function ConfirmDialog({
   text,
   confirmLabel = 'Удалить',
   action,
+  successMessage,
   onClose,
 }: ConfirmDialogProps) {
-  const mutation = useResourceMutation(action);
+  const mutation = useResourceMutation(action, successMessage);
 
   return (
     <Dialog open fullWidth maxWidth="xs" onClose={mutation.isPending ? undefined : onClose}>

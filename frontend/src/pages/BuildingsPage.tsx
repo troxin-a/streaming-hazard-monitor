@@ -49,6 +49,7 @@ export function BuildingsPage() {
           title="Удалить здание?"
           text={`Здание «${deleting.name}» будет удалено.`}
           action={() => buildings.remove(deleting.uuid)}
+          successMessage="Здание удалено"
           onClose={() => setDeleting(null)}
         />
       )}

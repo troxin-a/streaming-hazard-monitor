@@ -27,7 +27,10 @@ interface PasswordDialogProps {
 
 /** Задаёт пользователю новый пароль. */
 export function PasswordDialog({ user, onClose }: PasswordDialogProps) {
-  const save = useResourceMutation((values: PasswordValues) => users.update(user.uuid, values));
+  const save = useResourceMutation(
+    (values: PasswordValues) => users.update(user.uuid, values),
+    'Пароль изменён',
+  );
   const {
     register,
     handleSubmit,

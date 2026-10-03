@@ -57,5 +57,18 @@ services:
         condition: service_healthy
         restart: true
 
+  frontend:
+    build: ./frontend
+    volumes:
+      - ./frontend:/app
+      - frontend-node-modules:/app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      - API_PROXY_TARGET=http://api:8000
+    depends_on:
+      - api
+
 volumes:
   postgres-data:
+  frontend-node-modules:

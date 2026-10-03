@@ -21,6 +21,7 @@ class UserScheme(BaseScheme):
     uuid: UUID
     name: str
     is_superuser: bool
+    role: UserRole
     building: BuildingScheme | None
 
 

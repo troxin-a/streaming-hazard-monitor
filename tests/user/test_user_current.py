@@ -1,6 +1,7 @@
 import pytest
 from starlette import status
 
+from shared.user.enums import UserRole
 from tests.base.base_test import BaseTestCase
 from tests.fixtures.building import BUILDING_DATA
 from tests.fixtures.company import COMPANY_DATA
@@ -19,12 +20,18 @@ class TestCaseCurrentUser(BaseTestCase):
             'uuid': f'{user.uuid}',
             'name': user.name,
             'is_superuser': False,
+            'role': UserRole.EMPLOYEE,
             'building': {
                 'uuid': f'{building.uuid}',
                 'name': BUILDING_DATA['name'],
                 'company': {'uuid': f'{company.uuid}', 'name': COMPANY_DATA['name']},
             },
         }
+
+    async def test_current_director(self, director):
+        """Test current user reports the director role."""
+        response = await self.make_get(self.url, director.username)
+        assert response['role'] == UserRole.DIRECTOR
 
     async def test_current_superuser(self, superuser):
         """Test current user without a building reports superuser rights."""

@@ -1,6 +1,7 @@
 import pytest
 from starlette import status
 
+from shared.user.enums import UserRole
 from tests.base.base_test import BaseTestCase
 from tests.fixtures.building import BUILDING_DATA
 from tests.fixtures.company import COMPANY_DATA
@@ -26,7 +27,11 @@ class TestCaseUserDetail(BaseTestCase):
         url = self.url.format(uuid=superuser.uuid)
         response = await self.make_get(url, superuser.username)
         assert response == {
-            'uuid': f'{superuser.uuid}', 'name': superuser.name, 'is_superuser': True, 'building': None,
+            'uuid': f'{superuser.uuid}',
+            'name': superuser.name,
+            'is_superuser': True,
+            'role': UserRole.EMPLOYEE,
+            'building': None,
         }
 
     async def test_user_detail_another_building(self, user, neighbour):

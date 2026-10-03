@@ -1,3 +1,4 @@
+import { translateApiError } from './errors';
 import { tokenStorage, type Tokens } from './tokenStorage';
 
 const API_PREFIX = '/api';
@@ -102,7 +103,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
 /** Возвращает текст ошибки для показа пользователю. */
 export function getErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
-    return typeof error.detail === 'string' ? error.detail : `Ошибка сервера (${error.status})`;
+    return translateApiError(error.status, error.detail);
   }
   return 'Сервер недоступен. Проверьте соединение и попробуйте ещё раз.';
 }

@@ -6,14 +6,13 @@ import { Navigate, Outlet, useLocation } from 'react-router';
 
 import { getErrorMessage } from '@/shared/api/client';
 
-import { useCurrentUserQuery, useIsAuthenticated, useLogout } from './hooks';
+import { logout, useCurrentUserQuery, useIsAuthenticated } from './hooks';
 
 /** Пускает дальше только вошедшего пользователя, остальных отправляет на страницу входа. */
 export function RequireAuth() {
   const location = useLocation();
   const isAuthenticated = useIsAuthenticated();
   const { isPending, isError, error, refetch } = useCurrentUserQuery();
-  const logout = useLogout();
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;

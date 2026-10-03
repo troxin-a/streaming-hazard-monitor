@@ -16,7 +16,8 @@ import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router';
 
 import { ACCESS_LEVEL_LABELS, getAccessLevel, hasAccess } from '@/features/auth/access';
-import { useCurrentUser, useLogout } from '@/features/auth/hooks';
+import { logout, useCurrentUser } from '@/features/auth/hooks';
+import { APP_NAME } from '@/shared/config';
 
 import { sections } from './sections';
 
@@ -55,7 +56,6 @@ function Navigation({ onNavigate }: NavigationProps) {
 /** Каркас приложения: шапка, боковое меню и область страницы. */
 export function AppLayout() {
   const user = useCurrentUser();
-  const logout = useLogout();
   const [mobileOpen, setMobileOpen] = useState(false);
   const closeMobile = () => setMobileOpen(false);
 
@@ -73,7 +73,7 @@ export function AppLayout() {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" component="div" noWrap sx={{ flexGrow: 1 }}>
-            Мониторинг опасности
+            {APP_NAME}
           </Typography>
           <Typography noWrap sx={{ display: { xs: 'none', sm: 'block' } }}>
             {user.name}

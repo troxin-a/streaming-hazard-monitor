@@ -1,8 +1,11 @@
 import pytest
 from starlette import status
 
+from shared.user.enums import UserRole
 from tests.base.base_test import BaseTestCase
 from tests.conftest import get_url_size
+from tests.fixtures.building import BUILDING_DATA
+from tests.fixtures.company import COMPANY_DATA
 from tests.fixtures.users import USER_COUNT
 
 pytestmark = pytest.mark.integration
@@ -19,6 +22,20 @@ class TestCaseUserList(BaseTestCase):
         response = await self.make_get(url, user.username)
         assert response['total'] == USER_COUNT
         assert len(response['items']) == size
+
+    async def test_user_list_item(self, user, building, company):
+        """Test user list item carries the username, the role, the company and the building."""
+        response = await self.make_get(self.url, user.username)
+        company_data = {'uuid': f'{company.uuid}', 'name': COMPANY_DATA['name']}
+        assert response['items'] == [{
+            'uuid': f'{user.uuid}',
+            'username': user.username,
+            'name': user.name,
+            'is_superuser': False,
+            'role': UserRole.EMPLOYEE,
+            'company': company_data,
+            'building': {'uuid': f'{building.uuid}', 'name': BUILDING_DATA['name'], 'company': company_data},
+        }]
 
     async def test_user_list_own_building(self, user, many_users, neighbour, other_director):
         """Test an employee sees only the users of their building."""

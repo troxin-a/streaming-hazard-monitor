@@ -7,21 +7,18 @@ from starlette import status
 
 from shared.base.schemes import BaseScheme
 from shared.building.schemes import BuildingScheme
+from shared.company.schemes import CompanyScheme
 from shared.user.enums import UserRole
-
-
-class UserListScheme(BaseScheme):
-    """User list scheme."""
-    uuid: UUID
-    name: str
 
 
 class UserScheme(BaseScheme):
     """User scheme."""
     uuid: UUID
+    username: str
     name: str
     is_superuser: bool
     role: UserRole
+    company: CompanyScheme | None
     building: BuildingScheme | None
 
 

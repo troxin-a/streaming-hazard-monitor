@@ -21,9 +21,13 @@ class UserSession(BaseSession):
     """User session."""
 
     async def get_users(self, author: UserDB) -> Page[UserDB]:
-        """Get users visible to the author."""
+        """Get users visible to the author with their buildings and companies."""
         async with self.session.begin():
-            query = self._visible_users(select(UserDB), author).order_by(UserDB.created_at.desc())
+            query = (
+                self._visible_users(select(UserDB), author)
+                .order_by(UserDB.created_at.desc())
+                .options(selectinload(UserDB.building), selectinload(UserDB.company))
+            )
             return await apaginate(self.session, query)
 
     async def create_user(self, data: UserCreateScheme, author: UserDB) -> UserDB:
@@ -45,7 +49,9 @@ class UserSession(BaseSession):
         """Get user with its building and company by uuid or raise not found."""
         async with self.session.begin():
             query = self._visible_users(select(UserDB).filter_by(uuid=uuid), author)
-            user = await self.session.scalar(query.options(selectinload(UserDB.building)))
+            user = await self.session.scalar(
+                query.options(selectinload(UserDB.building), selectinload(UserDB.company)),
+            )
             if not user:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='User not found')
             return user
@@ -69,7 +75,8 @@ class UserSession(BaseSession):
                 company_uuid = fields.get('company_uuid') or user.company_uuid
                 if 'company_uuid' in fields:
                     await self._check_company(company_uuid)
-                await self._check_building(fields.get('building_uuid') or user.building_uuid, company_uuid)
+                building_uuid = fields['building_uuid'] if 'building_uuid' in fields else user.building_uuid
+                await self._check_building(building_uuid, company_uuid)
 
             return await self.scalar(update(UserDB).filter_by(uuid=uuid).values(**fields).returning(UserDB))
 

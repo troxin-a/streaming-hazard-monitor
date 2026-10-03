@@ -18,9 +18,11 @@ class TestCaseCurrentUser(BaseTestCase):
         response = await self.make_get(self.url, user.username)
         assert response == {
             'uuid': f'{user.uuid}',
+            'username': user.username,
             'name': user.name,
             'is_superuser': False,
             'role': UserRole.EMPLOYEE,
+            'company': {'uuid': f'{company.uuid}', 'name': COMPANY_DATA['name']},
             'building': {
                 'uuid': f'{building.uuid}',
                 'name': BUILDING_DATA['name'],

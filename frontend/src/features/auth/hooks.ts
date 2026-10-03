@@ -1,10 +1,10 @@
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useSyncExternalStore } from 'react';
+import { useSyncExternalStore } from 'react';
 
+import type { User } from '@/entities/user';
 import { tokenStorage } from '@/shared/api/tokenStorage';
 
 import { fetchCurrentUser, login } from './api';
-import type { User } from './types';
 
 const currentUserQuery = queryOptions({
   queryKey: ['current-user'],
@@ -44,10 +44,8 @@ export function useLogin() {
   });
 }
 
-export function useLogout(): () => void {
-  const queryClient = useQueryClient();
-  return useCallback(() => {
-    tokenStorage.clear();
-    queryClient.clear();
-  }, [queryClient]);
+/** Завершает сеанс и открывает страницу входа с полной перезагрузкой, сбрасывая все данные в памяти. */
+export function logout(): void {
+  tokenStorage.clear();
+  window.location.assign('/login');
 }

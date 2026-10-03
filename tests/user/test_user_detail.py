@@ -28,9 +28,11 @@ class TestCaseUserDetail(BaseTestCase):
         response = await self.make_get(url, superuser.username)
         assert response == {
             'uuid': f'{superuser.uuid}',
+            'username': superuser.username,
             'name': superuser.name,
             'is_superuser': True,
             'role': UserRole.EMPLOYEE,
+            'company': None,
             'building': None,
         }
 

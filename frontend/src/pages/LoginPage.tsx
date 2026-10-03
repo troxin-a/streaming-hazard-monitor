@@ -6,6 +6,7 @@ import { Navigate, useLocation } from 'react-router';
 
 import { useIsAuthenticated } from '@/features/auth/hooks';
 import { LoginForm } from '@/features/auth/LoginForm';
+import { APP_NAME } from '@/shared/config';
 
 interface LoginLocationState {
   from?: string;
@@ -26,7 +27,7 @@ export function LoginPage() {
         <Stack spacing={3}>
           <Stack spacing={0.5}>
             <Typography variant="h5" component="h1">
-              Мониторинг опасности
+              {APP_NAME}
             </Typography>
             <Typography color="text.secondary">Войдите, чтобы продолжить</Typography>
           </Stack>

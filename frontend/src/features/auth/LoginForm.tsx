@@ -8,11 +8,9 @@ import TextField from '@mui/material/TextField';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-import { ApiError, getErrorMessage } from '@/shared/api/client';
+import { getErrorMessage } from '@/shared/api/client';
 
 import { useLogin } from './hooks';
-
-const HTTP_UNAUTHORIZED = 401;
 
 const loginSchema = z.object({
   username: z.string().trim().min(1, 'Введите логин'),
@@ -21,13 +19,6 @@ const loginSchema = z.object({
 });
 
 type LoginValues = z.infer<typeof loginSchema>;
-
-function getLoginErrorMessage(error: unknown): string {
-  if (error instanceof ApiError && error.status === HTTP_UNAUTHORIZED) {
-    return 'Неверный логин или пароль';
-  }
-  return getErrorMessage(error);
-}
 
 export function LoginForm() {
   const login = useLogin();
@@ -47,7 +38,7 @@ export function LoginForm() {
       noValidate
       onSubmit={handleSubmit((values) => login.mutate(values))}
     >
-      {login.isError && <Alert severity="error">{getLoginErrorMessage(login.error)}</Alert>}
+      {login.isError && <Alert severity="error">{getErrorMessage(login.error)}</Alert>}
       <TextField
         label="Логин"
         autoComplete="username"

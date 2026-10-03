@@ -107,6 +107,14 @@ class TestCaseUserUpdate(BaseTestCase):
         response = await self.make_patch(url, superuser.username, data, status.HTTP_404_NOT_FOUND)
         assert response['detail'] == 'Building not found'
 
+    async def test_superuser_updates_company_without_building(self, superuser, other_director, company):
+        """Test superuser moves a user to another company leaving them without a building."""
+        url = self.url.format(uuid=other_director.uuid)
+        data = {'company_uuid': f'{company.uuid}', 'building_uuid': None}
+        response = await self.make_patch(url, superuser.username, data)
+        assert response['company_uuid'] == f'{company.uuid}'
+        assert response['building_uuid'] is None
+
     async def test_user_update_401(self, user):
         """Test user update by non-authenticated user."""
         url = self.url.format(uuid=user.uuid)

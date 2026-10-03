@@ -1,8 +1,14 @@
+from enum import StrEnum
 from typing import NoReturn
 
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 from starlette import status
+
+
+def enum_values(enum_class: type[StrEnum]) -> list[str]:
+    """Возвращает значения enum в порядке объявления для типа Postgres."""
+    return [member.value for member in enum_class]
 
 
 def get_error_message(err: IntegrityError, conflict: bool = False) -> str:

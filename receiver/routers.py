@@ -14,7 +14,7 @@ telemetry_router = FastAPIRouter()
         dict,
         response_status=status.HTTP_202_ACCEPTED,
         statuses=[status.HTTP_202_ACCEPTED],
-),
+    ),
     status_code=status.HTTP_202_ACCEPTED,
     description='Send telemetry',
 )

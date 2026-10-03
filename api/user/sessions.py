@@ -44,8 +44,8 @@ class UserSession(BaseSession):
     async def get_user(self, uuid: UUID, author: UserDB) -> UserDB:
         """Get user with its building and company by uuid or raise not found."""
         async with self.session.begin():
-            query = select(UserDB).options(selectinload(UserDB.building)).filter_by(uuid=uuid)
-            user = await self.session.scalar(self._visible_users(query, author))
+            query = self._visible_users(select(UserDB).filter_by(uuid=uuid), author)
+            user = await self.session.scalar(query.options(selectinload(UserDB.building)))
             if not user:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='User not found')
             return user

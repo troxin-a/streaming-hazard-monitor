@@ -36,25 +36,24 @@ class TestCaseUserCreate(BaseTestCase):
         assert response['company_uuid'] == f'{company.uuid}'
         assert response['building_uuid'] is None
 
-    async def test_employee_created_by_superuser(self, superuser, building):
+    async def test_employee_created_by_superuser(self, superuser, building, company):
         """Test employee create by superuser."""
-        data = self.payload(company_uuid=f'{building.company_uuid}', building_uuid=f'{building.uuid}')
+        data = self.payload(company_uuid=f'{company.uuid}', building_uuid=f'{building.uuid}')
         response = await self.make_post(self.url, superuser.username, data, status.HTTP_201_CREATED)
         assert response['role'] == UserRole.EMPLOYEE.value
         assert response['building_uuid'] == f'{building.uuid}'
 
-    async def test_employee_created_by_director(self, director, building):
+    async def test_employee_created_by_director(self, director, building, company):
         """Test employee create by director of the company."""
         data = self.payload(building_uuid=f'{building.uuid}')
         response = await self.make_post(self.url, director.username, data, status.HTTP_201_CREATED)
-        assert response['company_uuid'] == f'{building.company_uuid}'
+        assert response['company_uuid'] == f'{company.uuid}'
         assert response['building_uuid'] == f'{building.uuid}'
 
     async def test_employee_create_without_building(self, director):
         """Test employee create requires a building."""
-        response = await self.make_post(
-            self.url, director.username, self.payload(), status.HTTP_422_UNPROCESSABLE_CONTENT,
-        )
+        data = self.payload()
+        response = await self.make_post(self.url, director.username, data, status.HTTP_422_UNPROCESSABLE_CONTENT)
         assert response['detail'][0]['field'] == 'building_uuid'
 
     async def test_created_employee_can_login(self, director, building):
@@ -82,9 +81,9 @@ class TestCaseUserCreate(BaseTestCase):
         response = await self.make_post(self.url, user.username, data, status.HTTP_403_FORBIDDEN)
         assert response['detail'] == 'Access denied'
 
-    async def test_user_create_foreign_building(self, director, other_director):
+    async def test_user_create_foreign_building(self, director, other_building):
         """Test employee create in a building of another company."""
-        data = self.payload(building_uuid=f'{other_director.building_uuid}')
+        data = self.payload(building_uuid=f'{other_building.uuid}')
         response = await self.make_post(self.url, director.username, data, status.HTTP_404_NOT_FOUND)
         assert response['detail'] == 'Building not found'
 

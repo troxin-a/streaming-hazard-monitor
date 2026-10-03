@@ -5,7 +5,6 @@ import pytest
 from shared import UserDB
 from shared.user.enums import UserRole
 from tests.base.base_test import BaseTestCase
-from tests.fixtures.building import create_building
 
 USER_DATA = {
     'username': 'username',
@@ -46,75 +45,83 @@ async def create_users(
         count: int = 0,
 ) -> list[UserDB]:
     """Create users."""
-    user_list = []
-    for number in range(count):
-        username = f'{USER_DATA['username']}{number}'
-        user = await create_user(override_get_async_session, building_uuid, company_uuid, username=username)
-        user_list.append(user)
+    user_list = [
+        UserDB(
+            building_uuid=building_uuid,
+            company_uuid=company_uuid,
+            **{**USER_DATA, 'username': f'{USER_DATA["username"]}{number}'},
+        )
+        for number in range(count)
+    ]
+    override_get_async_session.add_all(user_list)
+    await override_get_async_session.commit()
     return user_list
 
 
 @pytest.fixture(scope='function')
-async def user(override_get_async_session, building) -> UserDB:
-    """User fixture."""
-    user = await create_user(override_get_async_session, building.uuid, building.company_uuid)
-    await create_users(override_get_async_session, building.uuid, building.company_uuid, USER_COUNT - 1)
-    return user
+async def user(override_get_async_session, building, company) -> UserDB:
+    """Employee of the building fixture."""
+    return await create_user(override_get_async_session, building.uuid, company.uuid)
 
 
 @pytest.fixture(scope='function')
-async def director(override_get_async_session, building) -> UserDB:
-    """Director fixture, belongs to the company of the building fixture."""
+async def many_users(override_get_async_session, user, building, company) -> list[UserDB]:
+    """Employees that bring the total of the building fixture with the user fixture to USER_COUNT."""
+    return await create_users(override_get_async_session, building.uuid, company.uuid, USER_COUNT - 1)
+
+
+@pytest.fixture(scope='function')
+async def director(override_get_async_session, building, company) -> UserDB:
+    """Director of the company fixture."""
     return await create_user(
         override_get_async_session,
         building.uuid,
-        building.company_uuid,
+        company.uuid,
         username='director',
         role=UserRole.DIRECTOR,
     )
 
 
 @pytest.fixture(scope='function')
-async def user_without_building(override_get_async_session, building) -> UserDB:
-    """Employee of the company that belongs to no building."""
+async def user_without_building(override_get_async_session, company) -> UserDB:
+    """Employee of the company fixture that belongs to no building."""
     return await create_user(
         override_get_async_session,
-        company_uuid=building.company_uuid,
+        company_uuid=company.uuid,
         username='without_building',
     )
 
 
 @pytest.fixture(scope='function')
-async def colleague_director(override_get_async_session, building) -> UserDB:
-    """Second director of the same company."""
+async def colleague_director(override_get_async_session, building, company) -> UserDB:
+    """Second director of the company fixture."""
     return await create_user(
         override_get_async_session,
         building.uuid,
-        building.company_uuid,
+        company.uuid,
         username='colleague_director',
         role=UserRole.DIRECTOR,
     )
 
 
 @pytest.fixture(scope='function')
-async def neighbour(override_get_async_session, second_building) -> UserDB:
-    """Employee of another building of the same company."""
+async def neighbour(override_get_async_session, second_building, company) -> UserDB:
+    """Employee of another building of the company fixture."""
     return await create_user(
         override_get_async_session,
         second_building.uuid,
-        second_building.company_uuid,
+        company.uuid,
         username='neighbour',
     )
 
 
 @pytest.fixture(scope='function')
-async def other_director(override_get_async_session) -> UserDB:
-    """Director fixture of another company."""
-    other_building = await create_building(override_get_async_session, name='Склад')
+async def other_director(override_get_async_session, other_building, other_company) -> UserDB:
+    """Director of another company."""
     return await create_user(
         override_get_async_session,
         other_building.uuid,
-        other_building.company_uuid,
+        other_company.uuid,
         username='other_director',
         role=UserRole.DIRECTOR,
     )

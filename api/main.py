@@ -8,6 +8,8 @@ from api.building.routers import building_router
 from api.building.urls import building_url
 from api.company.routers import company_router
 from api.company.urls import company_url
+from api.device.routers import device_router
+from api.device.urls import device_url
 from api.user.routers import user_router
 from api.user.urls import user_url
 from shared.config.settings import config
@@ -35,6 +37,7 @@ app.include_router(auth_router, prefix=auth_url(), tags=['auth'])
 app.include_router(user_router, prefix=user_url(), tags=['user'])
 app.include_router(company_router, prefix=company_url(), tags=['company'])
 app.include_router(building_router, prefix=building_url(), tags=['building'])
+app.include_router(device_router, prefix=device_url(), tags=['device'])
 
 add_pagination(app)
 

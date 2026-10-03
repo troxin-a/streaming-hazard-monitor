@@ -13,6 +13,8 @@ from shared.config.settings import config
 
 pytest_plugins = [
     'tests.fixtures.building',
+    'tests.fixtures.company',
+    'tests.fixtures.device',
     'tests.fixtures.users',
 ]
 

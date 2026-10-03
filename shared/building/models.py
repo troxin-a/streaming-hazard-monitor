@@ -7,6 +7,7 @@ from shared.base.models import BaseDBModel, FK, mc
 
 if TYPE_CHECKING:
     from shared.company.models import CompanyDB
+    from shared.device.models import DeviceDB
     from shared.user.models import UserDB
 
 
@@ -18,4 +19,5 @@ class BuildingDB(BaseDBModel):
     company_uuid: Mapped[UUID] = mc(UUID(), FK('companies.uuid'), index=True)
 
     company: Mapped['CompanyDB'] = relationship(back_populates='buildings', lazy='selectin')
+    devices: Mapped[list['DeviceDB']] = relationship(back_populates='building')
     users: Mapped[list['UserDB']] = relationship(back_populates='building')

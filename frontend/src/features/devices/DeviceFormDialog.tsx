@@ -3,11 +3,12 @@ import TextField from '@mui/material/TextField';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-import type { Building } from '@/entities/building';
+import { type Building, buildings } from '@/entities/building';
 import { type Device, DEVICE_TYPE_LABELS, DEVICE_TYPES, devices } from '@/entities/device';
 import { useResourceMutation } from '@/shared/api/hooks';
 import { errorProps } from '@/shared/ui/form';
 import { FormDialog } from '@/shared/ui/FormDialog';
+import { ResourceField } from '@/shared/ui/ResourceField';
 import { SelectField } from '@/shared/ui/SelectField';
 
 const deviceSchema = z.object({
@@ -21,18 +22,20 @@ type DeviceValues = z.infer<typeof deviceSchema>;
 
 const typeOptions = DEVICE_TYPES.map((type) => ({ value: type, label: DEVICE_TYPE_LABELS[type] }));
 
+function getBuildingLabel(building: Building): string {
+  return `${building.name} — ${building.company.name}`;
+}
+
 interface DeviceFormDialogProps {
   /** Изменяемый датчик; без него форма создаёт новый. */
   device?: Device;
-  buildingOptions: Building[];
   onClose: () => void;
 }
 
-export function DeviceFormDialog({ device, buildingOptions, onClose }: DeviceFormDialogProps) {
+export function DeviceFormDialog({ device, onClose }: DeviceFormDialogProps) {
   const save = useResourceMutation((values: DeviceValues) =>
     device ? devices.update(device.uuid, values) : devices.create(values),
   );
-  const onlyBuilding = buildingOptions.length === 1 ? buildingOptions[0].uuid : '';
   const {
     control,
     register,
@@ -44,7 +47,7 @@ export function DeviceFormDialog({ device, buildingOptions, onClose }: DeviceFor
       name: device?.name ?? '',
       serial_number: device?.serial_number ?? '',
       type: device?.type ?? 'co',
-      building_uuid: device?.building.uuid ?? onlyBuilding,
+      building_uuid: device?.building.uuid ?? '',
     },
   });
 
@@ -63,14 +66,13 @@ export function DeviceFormDialog({ device, buildingOptions, onClose }: DeviceFor
         {...register('serial_number')}
       />
       <SelectField control={control} name="type" label="Тип" options={typeOptions} />
-      <SelectField
+      <ResourceField
         control={control}
         name="building_uuid"
         label="Здание"
-        options={buildingOptions.map((building) => ({
-          value: building.uuid,
-          label: `${building.name} — ${building.company.name}`,
-        }))}
+        resource={buildings}
+        initialOption={device?.building}
+        getLabel={getBuildingLabel}
       />
     </FormDialog>
   );

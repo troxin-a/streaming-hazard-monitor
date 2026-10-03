@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import HTTPException
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import delete, Select, select, update
+from sqlalchemy import delete, or_, Select, select, update
 from sqlalchemy.orm import selectinload
 from starlette import status
 
@@ -20,14 +20,14 @@ from shared.user.schemes import UserCreateScheme, UserUpdateScheme
 class UserSession(BaseSession):
     """User session."""
 
-    async def get_users(self, author: UserDB) -> Page[UserDB]:
-        """Get users visible to the author with their buildings and companies."""
+    async def get_users(self, author: UserDB, search: str | None = None) -> Page[UserDB]:
+        """Get users visible to the author, optionally narrowed by a part of the name or the username."""
         async with self.session.begin():
-            query = (
-                self._visible_users(select(UserDB), author)
-                .order_by(UserDB.created_at.desc())
-                .options(selectinload(UserDB.building), selectinload(UserDB.company))
-            )
+            query = self._visible_users(select(UserDB), author).order_by(UserDB.created_at.desc())
+            if search:
+                pattern = f'%{search}%'
+                query = query.where(or_(UserDB.name.ilike(pattern), UserDB.username.ilike(pattern)))
+            query = query.options(selectinload(UserDB.building), selectinload(UserDB.company))
             return await apaginate(self.session, query)
 
     async def create_user(self, data: UserCreateScheme, author: UserDB) -> UserDB:

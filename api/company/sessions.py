@@ -15,12 +15,14 @@ from shared.user.models import UserDB
 class CompanySession(BaseSession):
     """Company session."""
 
-    async def get_companies(self, user: UserDB) -> Page[CompanyDB]:
-        """Get companies visible to the user."""
+    async def get_companies(self, user: UserDB, search: str | None = None) -> Page[CompanyDB]:
+        """Get companies visible to the user, optionally narrowed by a part of the name."""
         async with self.session.begin():
             query = select(CompanyDB).order_by(CompanyDB.created_at.desc())
             if not user.is_superuser:
                 query = query.where(CompanyDB.uuid == user.company_uuid)
+            if search:
+                query = query.where(CompanyDB.name.ilike(f'%{search}%'))
             return await apaginate(self.session, query)
 
     async def create_company(self, data: CompanyCreateScheme) -> CompanyDB:

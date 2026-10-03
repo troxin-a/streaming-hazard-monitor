@@ -17,10 +17,12 @@ from shared.user.models import UserDB
 class BuildingSession(BaseSession):
     """Building session."""
 
-    async def get_buildings(self, user: UserDB) -> Page[BuildingDB]:
-        """Get buildings visible to the user."""
+    async def get_buildings(self, user: UserDB, search: str | None = None) -> Page[BuildingDB]:
+        """Get buildings visible to the user, optionally narrowed by a part of the name."""
         async with self.session.begin():
             query = self._visible_buildings(select(BuildingDB), user).order_by(BuildingDB.created_at.desc())
+            if search:
+                query = query.where(BuildingDB.name.ilike(f'%{search}%'))
             return await apaginate(self.session, query)
 
     async def create_building(self, data: BuildingCreateScheme, user: UserDB) -> BuildingDB:

@@ -44,6 +44,18 @@ class TestCaseBuildingList(BaseTestCase):
         response = await self.make_get(self.url, superuser.username)
         assert response['total'] == BUILDING_COUNT + 1
 
+    async def test_building_list_search(self, director, building, second_building):
+        """Test building list is narrowed by a part of the name in any case."""
+        url = f'{self.url}?search=ОФИ'
+        response = await self.make_get(url, director.username)
+        assert [item['uuid'] for item in response['items']] == [f'{second_building.uuid}']
+
+    async def test_building_list_search_another_company(self, director, building, other_building):
+        """Test building search does not reach the buildings of another company."""
+        url = f'{self.url}?search=склад'
+        response = await self.make_get(url, director.username)
+        assert response['total'] == 0
+
     async def test_building_list_401(self, user):
         """Test building list by non-authenticated user."""
         await self.make_get(self.url, status_code=status.HTTP_401_UNAUTHORIZED)

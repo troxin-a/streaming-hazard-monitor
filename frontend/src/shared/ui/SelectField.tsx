@@ -14,7 +14,6 @@ interface SelectFieldProps<T extends FieldValues> {
   name: FieldPath<T>;
   label: string;
   options: SelectOption[];
-  onValueChange?: (value: string) => void;
 }
 
 /** Выпадающий список, связанный с полем формы. */
@@ -23,21 +22,11 @@ export function SelectField<T extends FieldValues>({
   name,
   label,
   options,
-  onValueChange,
 }: SelectFieldProps<T>) {
   const { field, fieldState } = useController({ control, name });
 
   return (
-    <TextField
-      select
-      label={label}
-      {...field}
-      onChange={(event) => {
-        field.onChange(event);
-        onValueChange?.(event.target.value);
-      }}
-      {...errorProps(fieldState.error)}
-    >
+    <TextField select label={label} {...field} {...errorProps(fieldState.error)}>
       {options.map((option) => (
         <MenuItem key={option.value} value={option.value}>
           {option.label}

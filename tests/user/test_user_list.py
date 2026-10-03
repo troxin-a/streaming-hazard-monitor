@@ -60,6 +60,24 @@ class TestCaseUserList(BaseTestCase):
         response = await self.make_get(self.url, superuser.username)
         assert response['total'] == USER_COUNT + 3
 
+    async def test_user_list_search_by_username(self, director, user, neighbour):
+        """Test user list is narrowed by a part of the username in any case."""
+        url = f'{self.url}?search=NEIGH'
+        response = await self.make_get(url, director.username)
+        assert [item['uuid'] for item in response['items']] == [f'{neighbour.uuid}']
+
+    async def test_user_list_search_by_name(self, director, user, neighbour):
+        """Test user list is narrowed by a part of the name in any case."""
+        url = f'{self.url}?search=ИМЯ'
+        response = await self.make_get(url, director.username)
+        assert response['total'] == 3
+
+    async def test_user_list_search_another_company(self, director, other_director):
+        """Test user search does not reach the users of another company."""
+        url = f'{self.url}?search=other'
+        response = await self.make_get(url, director.username)
+        assert response['total'] == 0
+
     async def test_user_list_401(self, user):
         """Test user list by non-authenticated user."""
         await self.make_get(self.url, status_code=status.HTTP_401_UNAUTHORIZED)

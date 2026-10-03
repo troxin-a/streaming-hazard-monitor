@@ -12,6 +12,8 @@ export interface PageParams {
   /** Номер страницы, начиная с 1. */
   page: number;
   size: number;
+  /** Часть названия; пустая строка не фильтрует. */
+  search?: string;
 }
 
 export interface Listable<T> {
@@ -33,7 +35,13 @@ export function createResource<T, TCreate, TUpdate = Partial<TCreate>, TDetail =
   const base = `/${key}/`;
   return {
     key,
-    list: ({ page, size }) => request(`${base}?page=${page}&size=${size}`),
+    list: ({ page, size, search }) => {
+      const query = new URLSearchParams({ page: String(page), size: String(size) });
+      if (search) {
+        query.set('search', search);
+      }
+      return request(`${base}?${query}`);
+    },
     get: (uuid) => request(`${base}${uuid}/`),
     create: (data) => request(base, { method: 'POST', body: data }),
     update: (uuid, data) => request(`${base}${uuid}/`, { method: 'PATCH', body: data }),

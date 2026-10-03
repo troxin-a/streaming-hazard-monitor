@@ -32,6 +32,18 @@ class TestCaseCompanyList(BaseTestCase):
         response = await self.make_get(self.url, superuser.username)
         assert response['total'] == COMPANY_COUNT + 1
 
+    async def test_company_list_search(self, superuser, company, other_company):
+        """Test company list is narrowed by a part of the name in any case."""
+        url = f'{self.url}?search=северсклад'
+        response = await self.make_get(url, superuser.username)
+        assert [item['uuid'] for item in response['items']] == [f'{other_company.uuid}']
+
+    async def test_company_list_search_no_match(self, superuser, company):
+        """Test company list is empty when no name contains the search text."""
+        url = f'{self.url}?search=химпром'
+        response = await self.make_get(url, superuser.username)
+        assert response['total'] == 0
+
     async def test_company_list_401(self, user):
         """Test company list by non-authenticated user."""
         await self.make_get(self.url, status_code=status.HTTP_401_UNAUTHORIZED)

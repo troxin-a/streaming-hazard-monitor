@@ -25,11 +25,12 @@ company_router = FastAPIRouter(dependencies=[Depends(JWTBearer())])
     description='Companies list',
 )
 async def companies_list(
+        search: str | None = None,
         session: AsyncSession = Depends(get_async_session),
         user: UserDB = Depends(JWTBearer().current_user),
 ) -> Page[CompanyDB]:
     """Companies list."""
-    return await CompanySession(session).get_companies(user)
+    return await CompanySession(session).get_companies(user, search)
 
 
 @company_router.post(

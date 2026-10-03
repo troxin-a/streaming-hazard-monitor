@@ -20,6 +20,7 @@ export function CompaniesPage() {
       <DataTable
         resource={companies}
         columns={columns}
+        searchLabel="Поиск по названию"
         actions={(company) => (
           <RowActions onEdit={() => setEditing(company)} onDelete={() => setDeleting(company)} />
         )}

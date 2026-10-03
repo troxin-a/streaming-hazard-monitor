@@ -4,13 +4,14 @@ import { useMemo } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 
-import type { Building } from '@/entities/building';
-import type { Company } from '@/entities/company';
+import { buildings } from '@/entities/building';
+import { companies } from '@/entities/company';
 import { ROLE_LABELS, type User, USER_ROLES, users } from '@/entities/user';
 import { useCurrentUser } from '@/features/auth/hooks';
 import { useResourceMutation } from '@/shared/api/hooks';
 import { errorProps } from '@/shared/ui/form';
 import { FormDialog } from '@/shared/ui/FormDialog';
+import { ResourceField } from '@/shared/ui/ResourceField';
 import { SelectField } from '@/shared/ui/SelectField';
 
 const roleOptions = USER_ROLES.map((role) => ({ value: role, label: ROLE_LABELS[role] }));
@@ -61,17 +62,10 @@ type UserValues = z.infer<ReturnType<typeof buildSchema>>;
 interface UserFormDialogProps {
   /** Изменяемый пользователь; без него форма создаёт нового. */
   user?: User;
-  companyOptions: Company[];
-  buildingOptions: Building[];
   onClose: () => void;
 }
 
-export function UserFormDialog({
-  user,
-  companyOptions,
-  buildingOptions,
-  onClose,
-}: UserFormDialogProps) {
+export function UserFormDialog({ user, onClose }: UserFormDialogProps) {
   const { is_superuser: isSuperuser } = useCurrentUser();
   const isCreate = !user;
   const targetIsSuperuser = Boolean(user?.is_superuser);
@@ -129,9 +123,6 @@ export function UserFormDialog({
   });
 
   const companyUuid = useWatch({ control, name: 'company_uuid' });
-  const visibleBuildings = companyUuid
-    ? buildingOptions.filter((building) => building.company.uuid === companyUuid)
-    : buildingOptions;
 
   return (
     <FormDialog
@@ -155,22 +146,22 @@ export function UserFormDialog({
         <SelectField control={control} name="role" label="Роль" options={roleOptions} />
       )}
       {isSuperuser && (
-        <SelectField
+        <ResourceField
           control={control}
           name="company_uuid"
           label="Компания"
-          options={companyOptions.map((company) => ({ value: company.uuid, label: company.name }))}
+          resource={companies}
+          initialOption={user?.company}
           onValueChange={() => setValue('building_uuid', '')}
         />
       )}
-      <SelectField
+      <ResourceField
         control={control}
         name="building_uuid"
         label="Здание"
-        options={[
-          { value: '', label: 'Без здания' },
-          ...visibleBuildings.map((building) => ({ value: building.uuid, label: building.name })),
-        ]}
+        resource={buildings}
+        initialOption={user?.building}
+        filter={companyUuid ? (building) => building.company.uuid === companyUuid : undefined}
       />
       <TextField
         label={isCreate ? 'Пароль' : 'Новый пароль'}

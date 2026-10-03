@@ -6,13 +6,11 @@ import Stack from '@mui/material/Stack';
 import Tooltip from '@mui/material/Tooltip';
 import { useState } from 'react';
 
-import { buildings } from '@/entities/building';
 import { type Device, DEVICE_TYPE_LABELS, devices, revokeApiKey } from '@/entities/device';
 import { canManage } from '@/features/auth/access';
 import { useCurrentUser } from '@/features/auth/hooks';
 import { ApiKeyDialog } from '@/features/devices/ApiKeyDialog';
 import { DeviceFormDialog } from '@/features/devices/DeviceFormDialog';
-import { useResourceOptions } from '@/shared/api/hooks';
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog';
 import { type Column, DataTable } from '@/shared/ui/DataTable';
 import { PageHeader } from '@/shared/ui/PageHeader';
@@ -37,7 +35,6 @@ const columns: Column<Device>[] = [
 
 export function DevicesPage() {
   const manage = canManage(useCurrentUser());
-  const { data: buildingOptions } = useResourceOptions(buildings, manage);
   const [editing, setEditing] = useState<Device | 'new' | null>(null);
   const [deleting, setDeleting] = useState<Device | null>(null);
   const [issuingKey, setIssuingKey] = useState<Device | null>(null);
@@ -71,20 +68,16 @@ export function DevicesPage() {
 
   return (
     <Stack spacing={2}>
-      <PageHeader
-        title="Датчики"
-        onAdd={manage ? () => setEditing('new') : undefined}
-        addDisabled={!buildingOptions}
-      />
+      <PageHeader title="Датчики" onAdd={manage ? () => setEditing('new') : undefined} />
       <DataTable
         resource={devices}
         columns={columns}
+        searchLabel="Поиск по названию или серийному номеру"
         actions={manage ? renderActions : undefined}
       />
-      {editing && buildingOptions && (
+      {editing && (
         <DeviceFormDialog
           device={editing === 'new' ? undefined : editing}
-          buildingOptions={buildingOptions}
           onClose={() => setEditing(null)}
         />
       )}

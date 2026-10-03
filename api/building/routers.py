@@ -25,11 +25,12 @@ building_router = FastAPIRouter(dependencies=[Depends(JWTBearer())])
     description='Buildings list',
 )
 async def buildings_list(
+        search: str | None = None,
         session: AsyncSession = Depends(get_async_session),
         user: UserDB = Depends(JWTBearer().current_user),
 ) -> Page[BuildingDB]:
     """Buildings list."""
-    return await BuildingSession(session).get_buildings(user)
+    return await BuildingSession(session).get_buildings(user, search)
 
 
 @building_router.post(

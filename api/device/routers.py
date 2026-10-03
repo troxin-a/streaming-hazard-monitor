@@ -25,11 +25,12 @@ device_router = FastAPIRouter(dependencies=[Depends(JWTBearer())])
     description='Devices list',
 )
 async def devices_list(
+        search: str | None = None,
         session: AsyncSession = Depends(get_async_session),
         user: UserDB = Depends(JWTBearer().current_user),
 ) -> Page[DeviceDB]:
     """Devices list."""
-    return await DeviceSession(session).get_devices(user)
+    return await DeviceSession(session).get_devices(user, search)
 
 
 @device_router.post(

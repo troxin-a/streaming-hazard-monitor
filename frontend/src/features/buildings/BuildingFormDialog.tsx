@@ -4,11 +4,12 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { type Building, buildings } from '@/entities/building';
-import type { Company } from '@/entities/company';
+import { companies } from '@/entities/company';
+import { useCurrentUser } from '@/features/auth/hooks';
 import { useResourceMutation } from '@/shared/api/hooks';
 import { errorProps } from '@/shared/ui/form';
 import { FormDialog } from '@/shared/ui/FormDialog';
-import { SelectField } from '@/shared/ui/SelectField';
+import { ResourceField } from '@/shared/ui/ResourceField';
 
 const buildingSchema = z.object({
   name: z.string().trim().min(1, 'Введите название'),
@@ -20,15 +21,16 @@ type BuildingValues = z.infer<typeof buildingSchema>;
 interface BuildingFormDialogProps {
   /** Изменяемое здание; без него форма создаёт новое. */
   building?: Building;
-  companyOptions: Company[];
   onClose: () => void;
 }
 
-export function BuildingFormDialog({ building, companyOptions, onClose }: BuildingFormDialogProps) {
+export function BuildingFormDialog({ building, onClose }: BuildingFormDialogProps) {
+  const currentUser = useCurrentUser();
   const save = useResourceMutation((values: BuildingValues) =>
     building ? buildings.update(building.uuid, values) : buildings.create(values),
   );
-  const onlyCompany = companyOptions.length === 1 ? companyOptions[0].uuid : '';
+  // Компанию выбирает только суперпользователь, директор работает в своей.
+  const ownCompany = currentUser.is_superuser ? '' : (currentUser.company?.uuid ?? '');
   const {
     control,
     register,
@@ -38,7 +40,7 @@ export function BuildingFormDialog({ building, companyOptions, onClose }: Buildi
     resolver: zodResolver(buildingSchema),
     defaultValues: {
       name: building?.name ?? '',
-      company_uuid: building?.company.uuid ?? onlyCompany,
+      company_uuid: building?.company.uuid ?? ownCompany,
     },
   });
 
@@ -51,12 +53,15 @@ export function BuildingFormDialog({ building, companyOptions, onClose }: Buildi
       onClose={onClose}
     >
       <TextField label="Название" autoFocus {...errorProps(errors.name)} {...register('name')} />
-      <SelectField
-        control={control}
-        name="company_uuid"
-        label="Компания"
-        options={companyOptions.map((company) => ({ value: company.uuid, label: company.name }))}
-      />
+      {currentUser.is_superuser && (
+        <ResourceField
+          control={control}
+          name="company_uuid"
+          label="Компания"
+          resource={companies}
+          initialOption={building?.company}
+        />
+      )}
     </FormDialog>
   );
 }

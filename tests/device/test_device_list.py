@@ -57,6 +57,19 @@ class TestCaseDeviceList(BaseTestCase):
         has_api_key = {item['uuid']: item['has_api_key'] for item in response['items']}
         assert has_api_key == {f'{device.uuid}': False, f'{device_with_api_key.uuid}': True}
 
+    @pytest.mark.parametrize('search', ['ДЫМ', 'sn-0002'])
+    async def test_device_list_search(self, director, device, neighbour_device, search):
+        """Test device list is narrowed by a part of the name or the serial number in any case."""
+        url = f'{self.url}?search={search}'
+        response = await self.make_get(url, director.username)
+        assert [item['uuid'] for item in response['items']] == [f'{neighbour_device.uuid}']
+
+    async def test_device_list_search_another_company(self, director, device, foreign_device):
+        """Test device search does not reach the devices of another company."""
+        url = f'{self.url}?search=метан'
+        response = await self.make_get(url, director.username)
+        assert response['total'] == 0
+
     async def test_device_list_401(self, device):
         """Test device list by non-authenticated user."""
         await self.make_get(self.url, status_code=status.HTTP_401_UNAUTHORIZED)

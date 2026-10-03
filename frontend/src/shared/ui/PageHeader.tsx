@@ -7,11 +7,10 @@ interface PageHeaderProps {
   title: string;
   /** Обработчик кнопки «Добавить»; без него кнопка не показывается. */
   onAdd?: () => void;
-  addDisabled?: boolean;
 }
 
 /** Заголовок раздела с кнопкой добавления записи. */
-export function PageHeader({ title, onAdd, addDisabled }: PageHeaderProps) {
+export function PageHeader({ title, onAdd }: PageHeaderProps) {
   return (
     <Stack
       direction="row"
@@ -22,7 +21,7 @@ export function PageHeader({ title, onAdd, addDisabled }: PageHeaderProps) {
         {title}
       </Typography>
       {onAdd && (
-        <Button variant="contained" startIcon={<AddIcon />} onClick={onAdd} disabled={addDisabled}>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={onAdd}>
           Добавить
         </Button>
       )}

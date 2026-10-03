@@ -25,11 +25,12 @@ user_router = FastAPIRouter(dependencies=[Depends(JWTBearer())])
     description='Users list',
 )
 async def users_list(
+        search: str | None = None,
         session: AsyncSession = Depends(get_async_session),
         user: UserDB = Depends(JWTBearer().current_user)
 ) -> Page[UserDB]:
     """Users list."""
-    return await UserSession(session).get_users(user)
+    return await UserSession(session).get_users(user, search)
 
 
 @user_router.post(

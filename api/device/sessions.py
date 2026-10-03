@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import HTTPException
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import ColumnElement, delete, literal_column, select, true, update, Update
+from sqlalchemy import ColumnElement, delete, literal_column, or_, select, true, update, Update
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql.functions import coalesce
 from starlette import status
@@ -22,15 +22,14 @@ PREVIOUS_KEY_HASH = literal_column('old.key_hash').label('previous_key_hash')
 class DeviceSession(BaseSession):
     """Device session."""
 
-    async def get_devices(self, user: UserDB) -> Page[DeviceDB]:
-        """Get devices visible to the user."""
+    async def get_devices(self, user: UserDB, search: str | None = None) -> Page[DeviceDB]:
+        """Get devices visible to the user, optionally narrowed by a part of the name or the serial number."""
         async with self.session.begin():
-            query = (
-                select(DeviceDB)
-                .where(self._visible(user))
-                .order_by(DeviceDB.created_at.desc())
-                .options(joinedload(DeviceDB.building).joinedload(BuildingDB.company))
-            )
+            query = select(DeviceDB).where(self._visible(user)).order_by(DeviceDB.created_at.desc())
+            if search:
+                pattern = f'%{search}%'
+                query = query.where(or_(DeviceDB.name.ilike(pattern), DeviceDB.serial_number.ilike(pattern)))
+            query = query.options(joinedload(DeviceDB.building).joinedload(BuildingDB.company))
             return await apaginate(self.session, query)
 
     async def create_device(self, data: DeviceCreateScheme, user: UserDB) -> DeviceDB:

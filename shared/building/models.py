@@ -16,7 +16,7 @@ class BuildingDB(BaseDBModel):
     __tablename__ = 'buildings'
 
     name: Mapped[str] = mc(index=True)
-    company_uuid: Mapped[UUID] = mc(UUID(), FK('companies.uuid'), index=True)
+    company_uuid: Mapped[UUID] = mc(UUID(), FK('companies.uuid', ondelete='CASCADE'), index=True)
 
     company: Mapped['CompanyDB'] = relationship(back_populates='buildings', lazy='selectin')
     devices: Mapped[list['DeviceDB']] = relationship(back_populates='building')

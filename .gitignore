@@ -19,3 +19,4 @@ celerybeat-schedule.db
 postgres_data/
 .coverage
 dump.rdb
+scripts/k6-keys.json

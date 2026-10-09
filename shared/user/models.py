@@ -25,10 +25,8 @@ class UserDB(BaseDBModel):
         default=UserRole.EMPLOYEE,
         server_default=UserRole.EMPLOYEE.value,
     )
-    company_uuid: Mapped[UUID | None] = mc(UUID(), FK('companies.uuid', ondelete='CASCADE'), index=True, nullable=True)
-    building_uuid: Mapped[UUID | None] = mc(
-        UUID(), FK('buildings.uuid', ondelete='SET NULL'), index=True, nullable=True
-    )
+    company_uuid: Mapped[UUID | None] = mc(UUID(), FK('companies.uuid'), index=True, nullable=True)
+    building_uuid: Mapped[UUID | None] = mc(UUID(), FK('buildings.uuid'), index=True, nullable=True)
 
     company: Mapped['CompanyDB | None'] = relationship(back_populates='users')
     building: Mapped['BuildingDB | None'] = relationship(back_populates='users')

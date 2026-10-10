@@ -1,8 +1,12 @@
+from typing import AsyncIterator
 from uuid import UUID
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from receiver.auth import get_devices
+from receiver.main import app as receiver_app
+from receiver.sessions import TelemetrySession
 from shared import DeviceDB
 from shared.device.enums import DeviceType
 from shared.device.services import hash_api_key
@@ -87,6 +91,15 @@ async def device_with_api_key(override_get_async_session, building) -> DeviceDB:
         serial_number='SN-0004',
         key_hash=hash_api_key(API_KEY),
     )
+
+
+@pytest.fixture(scope='function')
+async def device_keys(override_get_async_session, device, device_with_api_key) -> AsyncIterator[dict[str, UUID]]:
+    """Device uuids by api key hashes the receiver loads from the device fixtures."""
+    devices = await TelemetrySession(override_get_async_session).get_devices()
+    receiver_app.dependency_overrides[get_devices] = lambda: devices
+    yield devices
+    del receiver_app.dependency_overrides[get_devices]
 
 
 @pytest.fixture(scope='function')

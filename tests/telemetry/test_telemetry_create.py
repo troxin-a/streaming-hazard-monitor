@@ -19,14 +19,14 @@ class TestCaseTelemetryCreate(BaseTestCase):
     url = '/telemetry/'
     headers = {'X-API-Key': API_KEY}
 
-    async def test_telemetry_create(self, device_with_api_key, telemetry_producer):
+    async def test_telemetry_create(self, device_with_api_key, device_keys, telemetry_producer):
         """Test reading is accepted for the device the api key belongs to."""
         response = await self.make_post(self.url, None, {'value': '37.5'}, status.HTTP_202_ACCEPTED, self.headers)
         assert response['device_uuid'] == str(device_with_api_key.uuid)
         assert response['value'] == '37.5'
         assert response['received_at']
 
-    async def test_telemetry_create_message(self, device_with_api_key, telemetry_producer):
+    async def test_telemetry_create_message(self, device_with_api_key, device_keys, telemetry_producer):
         """Test accepted reading is sent to the readings topic with the device uuid as the key."""
         response = await self.make_post(self.url, None, {'value': '37.5'}, status.HTTP_202_ACCEPTED, self.headers)
         telemetry_producer.send_and_wait.assert_awaited_once()
@@ -35,18 +35,22 @@ class TestCaseTelemetryCreate(BaseTestCase):
         assert key == str(device_with_api_key.uuid).encode()
         assert json.loads(value) == response
 
-    async def test_telemetry_create_negative_value(self, device_with_api_key, telemetry_producer):
+    async def test_telemetry_create_negative_value(self, device_keys, telemetry_producer):
         """Test reading with a negative value is accepted."""
         response = await self.make_post(self.url, None, {'value': '-12.345'}, status.HTTP_202_ACCEPTED, self.headers)
         assert response['value'] == '-12.345'
 
-    async def test_telemetry_create_without_api_key(self, device_with_api_key, telemetry_producer):
+    async def test_telemetry_create_loaded_devices(self, device, device_with_api_key, device_keys):
+        """Test receiver loads only the devices with an issued api key."""
+        assert list(device_keys.values()) == [device_with_api_key.uuid]
+
+    async def test_telemetry_create_without_api_key(self, device_keys, telemetry_producer):
         """Test reading is rejected without an api key."""
         response = await self.make_post(self.url, None, {'value': '37.5'}, status.HTTP_401_UNAUTHORIZED)
         assert response['detail'] == 'Api key is required'
         telemetry_producer.send_and_wait.assert_not_awaited()
 
-    async def test_telemetry_create_unknown_api_key(self, device_with_api_key, telemetry_producer):
+    async def test_telemetry_create_unknown_api_key(self, device_keys, telemetry_producer):
         """Test reading is rejected with an api key no device has."""
         headers = {'X-API-Key': 'unknown-api-key'}
         response = await self.make_post(self.url, None, {'value': '37.5'}, status.HTTP_401_UNAUTHORIZED, headers)
@@ -59,7 +63,7 @@ class TestCaseTelemetryCreate(BaseTestCase):
         {'value': '1.2345'},
         {'value': '12345678.123'},
     ])
-    async def test_telemetry_create_invalid_value(self, device_with_api_key, telemetry_producer, data):
+    async def test_telemetry_create_invalid_value(self, device_keys, telemetry_producer, data):
         """Test reading is rejected without a value or with a value out of the accepted precision."""
         await self.make_post(self.url, None, data, status.HTTP_422_UNPROCESSABLE_CONTENT, self.headers)
         telemetry_producer.send_and_wait.assert_not_awaited()

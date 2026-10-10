@@ -1,14 +1,13 @@
 from decimal import Decimal
 from operator import attrgetter
 from typing import Sequence
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from fastapi import HTTPException
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import (
-    and_, case, column, ColumnElement, delete, insert, literal_column, or_, Row, select, Select, true, update, Update,
-    values,
+    and_, case, ColumnElement, delete, insert, literal_column, or_, Row, select, Select, true, update, Update,
 )
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql.functions import coalesce
@@ -180,22 +179,13 @@ class ThresholdSession(DeviceSession):
     ) -> list[DeviceThresholdDB]:
         """Set thresholds of every level for the device."""
         async with self.session.begin():
-            new = values(
-                column('uuid', DeviceThresholdDB.uuid.type),
-                column('level', DeviceThresholdDB.level.type),
-                column('value', DeviceThresholdDB.value.type),
-                name='new_thresholds',
-            ).data([(uuid4(), level, value) for level, value in data.by_level().items()])
-            rows = (
-                select(new.c.uuid, DeviceDB.uuid, new.c.level, new.c.value)
-                .select_from(DeviceDB)
-                .join(new, true())
-                .where(DeviceDB.uuid == device_uuid, self._visible(user))
-            )
-            query = insert(DeviceThresholdDB).from_select(['uuid', 'device_uuid', 'level', 'value'], rows)
-            thresholds = (await self.execute(query.returning(DeviceThresholdDB))).scalars().all()
-            if not thresholds:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Device not found')
+            await self._get_visible_device(device_uuid, user)
+            rows = [
+                {'device_uuid': device_uuid, 'level': level, 'value': value}
+                for level, value in data.by_level().items()
+            ]
+            query = insert(DeviceThresholdDB).values(rows).returning(DeviceThresholdDB)
+            thresholds = (await self.execute(query)).scalars().all()
             return sorted(thresholds, key=attrgetter('level'))
 
     async def update_thresholds(

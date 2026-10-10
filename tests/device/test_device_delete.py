@@ -22,8 +22,8 @@ class TestCaseDeviceDelete(BaseTestCase):
         await self.make_delete(url, superuser.username)
         await self.make_get(url, superuser.username, status_code=status.HTTP_404_NOT_FOUND)
 
-    async def test_device_delete_with_reading(self, director, device, reading):
-        """Test device with a reading is deleted."""
+    async def test_device_delete_with_thresholds(self, director, device, device_thresholds):
+        """Test device with its own thresholds is deleted."""
         url = self.url.format(uuid=device.uuid)
         await self.make_delete(url, director.username)
         await self.make_get(url, director.username, status_code=status.HTTP_404_NOT_FOUND)

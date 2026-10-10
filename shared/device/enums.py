@@ -9,3 +9,11 @@ class DeviceType(StrEnum):
     SMOKE = 'smoke'              # задымление
     TEMPERATURE = 'temperature'  # температура, °C
     RADIATION = 'radiation'      # мощность дозы, мкЗв/ч
+
+
+class AlertLevel(StrEnum):
+    """Level of the alert, a higher level is more dangerous."""
+    LEVEL_1 = 'level_1'
+    LEVEL_2 = 'level_2'
+    LEVEL_3 = 'level_3'
+    LEVEL_4 = 'level_4'

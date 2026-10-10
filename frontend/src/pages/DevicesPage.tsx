@@ -1,5 +1,6 @@
 import KeyIcon from '@mui/icons-material/Key';
 import KeyOffIcon from '@mui/icons-material/KeyOff';
+import TuneIcon from '@mui/icons-material/Tune';
 import Chip from '@mui/material/Chip';
 import IconButton from '@mui/material/IconButton';
 import Stack from '@mui/material/Stack';
@@ -11,6 +12,7 @@ import { canManage } from '@/features/auth/access';
 import { useCurrentUser } from '@/features/auth/hooks';
 import { ApiKeyDialog } from '@/features/devices/ApiKeyDialog';
 import { DeviceFormDialog } from '@/features/devices/DeviceFormDialog';
+import { ThresholdsDialog } from '@/features/devices/ThresholdsDialog';
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog';
 import { type Column, DataTable } from '@/shared/ui/DataTable';
 import { PageHeader } from '@/shared/ui/PageHeader';
@@ -39,9 +41,19 @@ export function DevicesPage() {
   const [deleting, setDeleting] = useState<Device | null>(null);
   const [issuingKey, setIssuingKey] = useState<Device | null>(null);
   const [revokingKey, setRevokingKey] = useState<Device | null>(null);
+  const [viewingThresholds, setViewingThresholds] = useState<Device | null>(null);
 
-  const renderActions = (device: Device) => (
+  const renderThresholdsAction = (device: Device) => (
+    <Tooltip title="Пороги">
+      <IconButton size="small" aria-label="Пороги" onClick={() => setViewingThresholds(device)}>
+        <TuneIcon fontSize="small" />
+      </IconButton>
+    </Tooltip>
+  );
+
+  const renderManageActions = (device: Device) => (
     <RowActions onEdit={() => setEditing(device)} onDelete={() => setDeleting(device)}>
+      {renderThresholdsAction(device)}
       {device.has_api_key ? (
         <Tooltip title="Отозвать API-ключ">
           <IconButton
@@ -73,7 +85,7 @@ export function DevicesPage() {
         resource={devices}
         columns={columns}
         searchLabel="Поиск по названию или серийному номеру"
-        actions={manage ? renderActions : undefined}
+        actions={manage ? renderManageActions : renderThresholdsAction}
       />
       {editing && (
         <DeviceFormDialog
@@ -88,6 +100,13 @@ export function DevicesPage() {
           action={() => devices.remove(deleting.uuid)}
           successMessage="Датчик удалён"
           onClose={() => setDeleting(null)}
+        />
+      )}
+      {viewingThresholds && (
+        <ThresholdsDialog
+          device={viewingThresholds}
+          editable={manage}
+          onClose={() => setViewingThresholds(null)}
         />
       )}
       {issuingKey && <ApiKeyDialog device={issuingKey} onClose={() => setIssuingKey(null)} />}

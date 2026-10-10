@@ -16,6 +16,10 @@ class DeviceURL(BaseURL):
         self.device_delete: str = '/{uuid}/'
         self.device_api_key_create: str = '/{uuid}/api-key/'
         self.device_api_key_delete: str = '/{uuid}/api-key/'
+        self.device_thresholds_list: str = '/{uuid}/thresholds/'
+        self.device_thresholds_create: str = '/{uuid}/thresholds/'
+        self.device_thresholds_update: str = '/{uuid}/thresholds/'
+        self.device_thresholds_delete: str = '/{uuid}/thresholds/'
 
 
 device_url = DeviceURL(Path(__file__).parent.parent.name)

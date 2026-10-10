@@ -1,17 +1,24 @@
-from uuid import UUID
+from decimal import Decimal
+from operator import attrgetter
+from typing import Sequence
+from uuid import UUID, uuid4
 
 from fastapi import HTTPException
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import ColumnElement, delete, literal_column, or_, select, true, update, Update
+from sqlalchemy import (
+    and_, case, column, ColumnElement, delete, insert, literal_column, or_, Row, select, Select, true, update, Update,
+    values,
+)
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql.functions import coalesce
 from starlette import status
 
 from shared.base.sessions import BaseSession
 from shared.building.models import BuildingDB
-from shared.device.models import DeviceDB
-from shared.device.schemes import DeviceCreateScheme, DeviceUpdateScheme
+from shared.device.enums import AlertLevel
+from shared.device.models import DefaultThresholdDB, DeviceDB, DeviceThresholdDB
+from shared.device.schemes import DeviceCreateScheme, DeviceUpdateScheme, ThresholdsSetScheme
 from shared.device.services import generate_api_key, hash_api_key
 from shared.user.enums import UserRole
 from shared.user.models import UserDB
@@ -135,3 +142,95 @@ class DeviceSession(BaseSession):
         if not building:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Building not found')
         return building
+
+
+class ThresholdSession(DeviceSession):
+    """Device threshold session."""
+
+    async def get_thresholds(
+            self,
+            device_uuid: UUID,
+            user: UserDB,
+    ) -> Sequence[Row[tuple[AlertLevel, Decimal, bool]]]:
+        """Get thresholds set for the device or the default ones of its type."""
+        async with self.session.begin():
+            own, default = DeviceThresholdDB, DefaultThresholdDB
+            query = (
+                select(
+                    coalesce(own.level, default.level).label('level'),
+                    coalesce(own.value, default.value).label('value'),
+                    own.uuid.is_(None).label('is_default'),
+                )
+                .select_from(DeviceDB)
+                .outerjoin(own, own.device_uuid == DeviceDB.uuid)
+                .outerjoin(default, and_(default.device_type == DeviceDB.type, own.uuid.is_(None)))
+                .where(DeviceDB.uuid == device_uuid, self._visible(user))
+                .order_by('level')
+            )
+            rows = (await self.session.execute(query)).all()
+            if not rows:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Device not found')
+            return [row for row in rows if row.level is not None]
+
+    async def create_thresholds(
+            self,
+            device_uuid: UUID,
+            data: ThresholdsSetScheme,
+            user: UserDB,
+    ) -> list[DeviceThresholdDB]:
+        """Set thresholds of every level for the device."""
+        async with self.session.begin():
+            new = values(
+                column('uuid', DeviceThresholdDB.uuid.type),
+                column('level', DeviceThresholdDB.level.type),
+                column('value', DeviceThresholdDB.value.type),
+                name='new_thresholds',
+            ).data([(uuid4(), level, value) for level, value in data.by_level().items()])
+            rows = (
+                select(new.c.uuid, DeviceDB.uuid, new.c.level, new.c.value)
+                .select_from(DeviceDB)
+                .join(new, true())
+                .where(DeviceDB.uuid == device_uuid, self._visible(user))
+            )
+            query = insert(DeviceThresholdDB).from_select(['uuid', 'device_uuid', 'level', 'value'], rows)
+            thresholds = (await self.execute(query.returning(DeviceThresholdDB))).scalars().all()
+            if not thresholds:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Device not found')
+            return sorted(thresholds, key=attrgetter('level'))
+
+    async def update_thresholds(
+            self,
+            device_uuid: UUID,
+            data: ThresholdsSetScheme,
+            user: UserDB,
+    ) -> list[DeviceThresholdDB]:
+        """Update thresholds of every level set for the device."""
+        async with self.session.begin():
+            query = (
+                update(DeviceThresholdDB)
+                .where(
+                    DeviceThresholdDB.device_uuid == device_uuid,
+                    DeviceThresholdDB.device_uuid.in_(self._visible_devices(user)),
+                )
+                .values(value=case(data.by_level(), value=DeviceThresholdDB.level))
+                .returning(DeviceThresholdDB)
+            )
+            thresholds = (await self.execute(query)).scalars().all()
+            if not thresholds:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Thresholds not found')
+            return sorted(thresholds, key=attrgetter('level'))
+
+    async def delete_thresholds(self, device_uuid: UUID, user: UserDB) -> None:
+        """Delete thresholds set for the device."""
+        async with self.session.begin():
+            query = delete(DeviceThresholdDB).where(
+                DeviceThresholdDB.device_uuid == device_uuid,
+                DeviceThresholdDB.device_uuid.in_(self._visible_devices(user)),
+            )
+            deleted = (await self.execute(query.returning(DeviceThresholdDB.uuid))).all()
+            if not deleted:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Thresholds not found')
+
+    def _visible_devices(self, user: UserDB) -> Select[tuple[UUID]]:
+        """Build the query of the uuids of the devices the user is allowed to see."""
+        return select(DeviceDB.uuid).where(self._visible(user))

@@ -17,11 +17,3 @@ class ReadingMessageScheme(BaseScheme):
     device_uuid: UUID
     value: Decimal
     received_at: datetime
-
-
-class ReadingScheme(BaseScheme):
-    """Reading scheme."""
-    uuid: UUID
-    device_uuid: UUID
-    value: Decimal
-    created_at: datetime

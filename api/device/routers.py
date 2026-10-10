@@ -1,18 +1,24 @@
+from decimal import Decimal
+from typing import Sequence
 from uuid import UUID
 
 from fastapi import Depends
 from fastapi_pagination import Page
+from sqlalchemy import Row
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from api.auth.auth import current_director, JWTBearer
-from api.device.sessions import DeviceSession
+from api.device.sessions import DeviceSession, ThresholdSession
 from api.device.urls import device_url
 from shared.base.responses import responses
 from shared.base.router import FastAPIRouter
 from shared.config.session import get_async_session
-from shared.device.models import DeviceDB
-from shared.device.schemes import DeviceAPIKeyScheme, DeviceCreateScheme, DeviceScheme, DeviceUpdateScheme
+from shared.device.enums import AlertLevel
+from shared.device.models import DeviceDB, DeviceThresholdDB
+from shared.device.schemes import (
+    DeviceAPIKeyScheme, DeviceCreateScheme, DeviceScheme, DeviceUpdateScheme, ThresholdScheme, ThresholdsSetScheme,
+)
 from shared.user.models import UserDB
 
 device_router = FastAPIRouter(dependencies=[Depends(JWTBearer())])
@@ -142,3 +148,75 @@ async def device_api_key_delete(
 ) -> None:
     """Revoke the api key of the device."""
     await DeviceSession(session).delete_api_key(uuid, user)
+
+
+@device_router.get(
+    device_url.device_thresholds_list,
+    response_model=list[ThresholdScheme],
+    responses=responses(list[ThresholdScheme], statuses=[status.HTTP_404_NOT_FOUND]),
+    description='Thresholds of the device: the ones set for it or the default ones of its type',
+)
+async def device_thresholds_list(
+        uuid: UUID,
+        session: AsyncSession = Depends(get_async_session),
+        user: UserDB = Depends(JWTBearer().current_user),
+) -> Sequence[Row[tuple[AlertLevel, Decimal, bool]]]:
+    """Thresholds of the device."""
+    return await ThresholdSession(session).get_thresholds(uuid, user)
+
+
+@device_router.post(
+    device_url.device_thresholds_create,
+    response_model=list[ThresholdScheme],
+    responses=responses(
+        list[ThresholdScheme],
+        response_status=status.HTTP_201_CREATED,
+        statuses=[status.HTTP_404_NOT_FOUND, status.HTTP_409_CONFLICT],
+    ),
+    status_code=status.HTTP_201_CREATED,
+    description='Set thresholds of every level for the device',
+)
+async def device_thresholds_create(
+        uuid: UUID,
+        body: ThresholdsSetScheme,
+        session: AsyncSession = Depends(get_async_session),
+        user: UserDB = Depends(current_director),
+) -> list[DeviceThresholdDB]:
+    """Set thresholds for the device."""
+    return await ThresholdSession(session).create_thresholds(uuid, body, user)
+
+
+@device_router.patch(
+    device_url.device_thresholds_update,
+    response_model=list[ThresholdScheme],
+    responses=responses(list[ThresholdScheme], statuses=[status.HTTP_404_NOT_FOUND]),
+    description='Update thresholds of every level set for the device',
+)
+async def device_thresholds_update(
+        uuid: UUID,
+        body: ThresholdsSetScheme,
+        session: AsyncSession = Depends(get_async_session),
+        user: UserDB = Depends(current_director),
+) -> list[DeviceThresholdDB]:
+    """Update thresholds set for the device."""
+    return await ThresholdSession(session).update_thresholds(uuid, body, user)
+
+
+@device_router.delete(
+    device_url.device_thresholds_delete,
+    response_model=None,
+    responses=responses(
+        None,
+        response_status=status.HTTP_204_NO_CONTENT,
+        statuses=[status.HTTP_204_NO_CONTENT, status.HTTP_404_NOT_FOUND],
+    ),
+    status_code=status.HTTP_204_NO_CONTENT,
+    description='Delete thresholds set for the device, the default ones apply again',
+)
+async def device_thresholds_delete(
+        uuid: UUID,
+        session: AsyncSession = Depends(get_async_session),
+        user: UserDB = Depends(current_director),
+) -> None:
+    """Delete thresholds set for the device."""
+    await ThresholdSession(session).delete_thresholds(uuid, user)

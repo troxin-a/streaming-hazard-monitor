@@ -38,7 +38,6 @@ app.include_router(user_router, prefix=user_url(), tags=['user'])
 app.include_router(company_router, prefix=company_url(), tags=['company'])
 app.include_router(building_router, prefix=building_url(), tags=['building'])
 app.include_router(device_router, prefix=device_url(), tags=['device'])
-
 add_pagination(app)
 
 app.add_middleware(

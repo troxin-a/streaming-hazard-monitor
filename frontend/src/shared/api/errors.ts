@@ -18,6 +18,7 @@ const DETAIL_TRANSLATIONS: Record<string, string> = {
   'Device not found': 'Датчик не найден',
   'Device has no api key': 'У датчика нет API-ключа',
   'Device already has an api key': 'У датчика уже есть API-ключ',
+  'Thresholds not found': 'У датчика нет своих порогов',
   'Passwords must be the same': 'Пароли не совпадают',
   'Incorrect password': 'Текущий пароль указан неверно',
   'Building is required for an employee': 'Сотруднику нужно указать здание',

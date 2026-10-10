@@ -63,6 +63,12 @@ class DatabaseSettings(EnvSettings):
         return self.get_test_db_url('postgres')
 
 
+class KafkaSettings(EnvSettings):
+    KAFKA_HOST: str = 'kafka:9092'
+    KAFKA_TOPIC_SENSOR_READINGS: str = 'sensor-readings'
+    KAFKA_TOPIC_ALERTS: str = 'alerts'
+
+
 # class CelerySettings(EnvSettings):
 #     CELERY_BROKER_URL: str
 #     CELERY_RESULT_BACKEND: str
@@ -82,6 +88,7 @@ class Config(EnvSettings):
     app: AppSettings = AppSettings()
     jwt: JWTSettings = JWTSettings()
     database: DatabaseSettings = DatabaseSettings()
+    kafka: KafkaSettings = KafkaSettings()
     # celery: CelerySettings = CelerySettings()
     # redis: RedisSettings = RedisSettings()
 

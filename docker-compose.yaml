@@ -28,7 +28,7 @@ services:
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://localhost:9093
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
@@ -39,6 +39,7 @@ services:
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_NUM_PARTITIONS: 3
       KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
     volumes:
       - kafka-data:/var/lib/kafka/data
 
@@ -64,7 +65,7 @@ services:
     image: streaming-api
     build: .
 #    command: uvicorn receiver.main:app --host 0.0.0.0 --port 8000 --reload
-    command: uvicorn receiver.main:app --host 0.0.0.0 --port 8000 --workers 8
+    command: uvicorn receiver.main:app --host 0.0.0.0 --port 8000 --workers 8 --no-access-log
     volumes:
       - .:/app
     ports:

@@ -12,6 +12,13 @@ class ReadingCreateScheme(BaseScheme):
     value: Decimal = Field(max_digits=10, decimal_places=3)
 
 
+class ReadingMessageScheme(BaseScheme):
+    """Reading message scheme."""
+    device_uuid: UUID
+    value: Decimal
+    received_at: datetime
+
+
 class ReadingScheme(BaseScheme):
     """Reading scheme."""
     uuid: UUID

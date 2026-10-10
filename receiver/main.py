@@ -1,7 +1,12 @@
+from contextlib import asynccontextmanager
+from typing import AsyncIterator
+
+from aiokafka import AIOKafkaProducer
 from fastapi import FastAPI
 from fastapi_pagination import add_pagination
 from starlette.middleware.cors import CORSMiddleware
 
+from receiver.producers import create_producer
 from receiver.routers import telemetry_router
 from receiver.urls import telemetry_url
 from shared.config.settings import config
@@ -18,7 +23,20 @@ SWAGGER_UI_SETTINGS = {
     'operationsSorter': 'alpha',
 }
 
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncIterator[dict[str, AIOKafkaProducer]]:
+    """Keep the producer running while the application works."""
+    telemetry_producer = create_producer()
+    await telemetry_producer.start()
+
+    yield {'telemetry_producer': telemetry_producer}
+
+    await telemetry_producer.stop()
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title='Open telemetry receiver',
     docs_url='/receiver/docs/',
     debug=DEBUG,

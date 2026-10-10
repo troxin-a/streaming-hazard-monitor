@@ -24,5 +24,5 @@ export default function () {
     const body = JSON.stringify({value: 42.5});
     const params = {headers: {'Content-Type': 'application/json', 'X-API-Key': key}, timeout: '1s'};
     const response = http.post(URL, body, params);
-    check(response, {'status 201': (r) => r.status === 201});
+    check(response, {'status 202': (r) => r.status === 202});
 }

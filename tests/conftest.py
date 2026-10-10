@@ -16,6 +16,7 @@ pytest_plugins = [
     'tests.fixtures.building',
     'tests.fixtures.company',
     'tests.fixtures.device',
+    'tests.fixtures.producer',
     'tests.fixtures.reading',
     'tests.fixtures.users',
 ]

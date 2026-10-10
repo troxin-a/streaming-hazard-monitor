@@ -4,8 +4,6 @@ from sqlalchemy import select
 
 from shared.base.sessions import BaseSession
 from shared.device.models import DeviceDB
-from shared.reading.models import ReadingDB
-from shared.reading.schemes import ReadingCreateScheme
 
 
 class TelemetrySession(BaseSession):
@@ -16,11 +14,3 @@ class TelemetrySession(BaseSession):
         async with self.session.begin():
             query = select(DeviceDB.uuid).filter_by(key_hash=key_hash)
             return await self.session.scalar(query)
-
-    async def create_reading(self, device_uuid: UUID, data: ReadingCreateScheme) -> ReadingDB:
-        """Create reading of the device."""
-        async with self.session.begin():
-            reading = ReadingDB(device_uuid=device_uuid, value=data.value)
-            self.session.add(reading)
-            await self.flush()
-            return reading

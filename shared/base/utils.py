@@ -7,7 +7,7 @@ from starlette import status
 
 
 def enum_values(enum_class: type[StrEnum]) -> list[str]:
-    """Возвращает значения enum в порядке объявления для типа Postgres."""
+    """Return values from enum class."""
     return [member.value for member in enum_class]
 
 

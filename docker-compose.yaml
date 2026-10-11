@@ -79,6 +79,22 @@ services:
         condition: service_healthy
         restart: true
 
+  detector:
+    image: streaming-api
+    build: .
+    command: python -m detector.main
+    volumes:
+      - .:/app
+    env_file:
+      - ".env"
+    environment:
+      - POSTGRES_HOST=db
+    depends_on:
+      db:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+
   frontend:
     build: ./frontend
     volumes:

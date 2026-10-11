@@ -26,7 +26,6 @@ class DeviceDB(BaseDBModel):
 
     @property
     def has_api_key(self) -> bool:
-        """Сообщает, выпущен ли у устройства действующий api-ключ."""
         return self.key_hash is not None
 
 

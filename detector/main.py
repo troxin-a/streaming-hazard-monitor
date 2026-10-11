@@ -17,9 +17,12 @@ async def main() -> None:
 
         await consumer.start()
         try:
-            async for message in consumer:
-                await handle_reading(message.value, thresholds, levels, detector_session)
-                await consumer.commit()
+            while True:
+                result = await consumer.getmany(timeout_ms=1000, max_records=100)
+                for tp, messages in result.items():
+                    if messages:
+                        await handle_reading(messages, thresholds, levels, detector_session)
+                        await consumer.commit({tp: messages[-1].offset + 1})
         finally:
             await consumer.stop()
 

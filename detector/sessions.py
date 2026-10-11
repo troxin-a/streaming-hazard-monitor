@@ -1,8 +1,8 @@
 import logging
 from decimal import Decimal
-from uuid import UUID
+from uuid import UUID, uuid4
 
-from sqlalchemy import and_, insert, literal, select, update
+from sqlalchemy import and_, insert, select, update, Values
 from sqlalchemy.sql.functions import coalesce
 
 from shared.alert.models import AlertDB
@@ -47,26 +47,72 @@ class DetectorSession(BaseSession):
             rows = await self.session.stream(query)
             return {row.device_uuid: row.level async for row in rows}
 
-    async def change_level(self, reading: ReadingMessageScheme, level: AlertLevel | None) -> None:
+    async def change_level(self, readings: list[tuple[ReadingMessageScheme, AlertLevel | None]]) -> None:
         """End the alert in progress of the device of the reading and start the alert of the level."""
         async with self.session.begin():
-            query = (
+            ended = Values(
+                AlertDB.device_uuid,
+                AlertDB.ended_at,
+                name='ended',
+            ).data([(reading.device_uuid, reading.received_at) for reading, level in readings])
+            update_stmt = (
                 update(AlertDB)
-                .where(AlertDB.device_uuid == reading.device_uuid, AlertDB.ended_at.is_(None))
-                .values(ended_at=reading.received_at)
+                .where(AlertDB.device_uuid == ended.c.device_uuid, AlertDB.ended_at.is_(None))
+                .values(ended_at=ended.c.ended_at)
             )
-            await self.session.execute(query)
-            if level is None:
-                return
+            await self.session.execute(update_stmt)
 
-            columns = [AlertDB.device_uuid, AlertDB.building_uuid, AlertDB.level, AlertDB.value, AlertDB.started_at]
-            alert = select(
-                DeviceDB.uuid,
-                DeviceDB.building_uuid,
-                literal(level, AlertDB.level.type),
-                literal(reading.value, AlertDB.value.type),
-                literal(reading.received_at, AlertDB.started_at.type),
-            ).filter_by(uuid=reading.device_uuid)
-            query = insert(AlertDB).from_select(columns, alert).returning(AlertDB.uuid)
-            if await self.session.scalar(query) is None:
-                logger.warning('Alert is not saved: device %s is not found', reading.device_uuid)
+            data = [
+                (reading.device_uuid, reading.value, reading.received_at, level, uuid4())
+                for reading, level in readings
+                if level is not None
+            ]
+            if not data:
+                return
+            started = Values(
+                AlertDB.device_uuid, AlertDB.value, AlertDB.started_at, AlertDB.level, AlertDB.uuid,
+                name='started'
+            ).data(data)
+            to_create = [i[0] for i in data]
+            query = (
+                select(
+                    started.c.uuid,
+                    started.c.level,
+                    started.c.value,
+                    started.c.started_at,
+                    started.c.device_uuid,
+                    DeviceDB.building_uuid,
+                )
+                .join(started, DeviceDB.uuid == started.c.device_uuid)
+            )
+            columns = [
+                AlertDB.uuid, AlertDB.level, AlertDB.value,
+                AlertDB.started_at, AlertDB.device_uuid, AlertDB.building_uuid,
+            ]
+            stmt = insert(AlertDB).from_select(columns, query).returning(AlertDB.device_uuid)
+            result = set(await self.session.scalars(stmt))
+
+            for uuid in to_create:
+                if uuid not in result:
+                    logger.warning('Alert is not saved: device %s is not found', uuid)
+
+            # query = (
+            #     update(AlertDB)
+            #     .where(AlertDB.device_uuid == reading.device_uuid, AlertDB.ended_at.is_(None))
+            #     .values(ended_at=reading.received_at)
+            # )
+            # await self.session.execute(query)
+            # if level is None:
+            #     return
+            #
+            # columns = [AlertDB.device_uuid, AlertDB.building_uuid, AlertDB.level, AlertDB.value, AlertDB.started_at]
+            # alert = select(
+            #     DeviceDB.uuid,
+            #     DeviceDB.building_uuid,
+            #     literal(level, AlertDB.level.type),
+            #     literal(reading.value, AlertDB.value.type),
+            #     literal(reading.received_at, AlertDB.started_at.type),
+            # ).filter_by(uuid=reading.device_uuid)
+            # query = insert(AlertDB).from_select(columns, alert).returning(AlertDB.uuid)
+            # if await self.session.scalar(query) is None:
+            #     logger.warning('Alert is not saved: device %s is not found', reading.device_uuid)

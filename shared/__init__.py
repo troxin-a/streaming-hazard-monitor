@@ -1,3 +1,4 @@
+from shared.alert.models import AlertDB
 from shared.base.models import BaseDBModel
 from shared.building.models import BuildingDB
 from shared.company.models import CompanyDB

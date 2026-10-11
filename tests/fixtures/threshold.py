@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared import DefaultThresholdDB, DeviceThresholdDB
 from shared.device.enums import AlertLevel, DeviceType
+from tests.fixtures.reading import DEVICE_UUID
 
 DEFAULT_VALUES = {
     AlertLevel.LEVEL_1: Decimal('20'),
@@ -29,6 +30,8 @@ NEW_THRESHOLDS = {
 }
 
 LEVELS = [level.value for level in AlertLevel]
+
+LOADED_THRESHOLDS = {DEVICE_UUID: DEFAULT_VALUES}
 
 
 async def create_default_thresholds(

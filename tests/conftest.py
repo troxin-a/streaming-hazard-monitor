@@ -13,8 +13,10 @@ from shared.config.session import get_async_session
 from shared.config.settings import config
 
 pytest_plugins = [
+    'tests.fixtures.alert',
     'tests.fixtures.building',
     'tests.fixtures.company',
+    'tests.fixtures.detector',
     'tests.fixtures.device',
     'tests.fixtures.producer',
     'tests.fixtures.threshold',

@@ -4,31 +4,38 @@ from uuid import UUID
 
 from pydantic import ValidationError
 
+from detector.sessions import DetectorSession
 from shared.device.enums import AlertLevel
 from shared.reading.schemes import ReadingMessageScheme
 
 logger = logging.getLogger(__name__)
 
 
-def detect_level(value: Decimal, thresholds: dict[AlertLevel, Decimal]) -> AlertLevel | None:
-    """Return the highest alert level the value is above the threshold of."""
-    return max((level for level, threshold in thresholds.items() if value > threshold), default=None)
-
-
-def handle_reading(message: bytes, thresholds: dict[UUID, dict[AlertLevel, Decimal]]) -> AlertLevel | None:
-    """Return the alert level of the reading from the message of the readings topic."""
+async def handle_reading(
+        message: bytes,
+        thresholds: dict[UUID, dict[AlertLevel, Decimal]],
+        levels: dict[UUID, AlertLevel],
+        session: DetectorSession,
+) -> None:
+    """Change the alert of the device when the level of the reading from the message differs from its level."""
     try:
         reading = ReadingMessageScheme.model_validate_json(message)
     except ValidationError:
         logger.exception('Invalid reading message: %r', message)
-        return None
+        return
 
     device_thresholds = thresholds.get(reading.device_uuid)
     if device_thresholds is None:
         logger.warning('No thresholds for device %s', reading.device_uuid)
-        return None
+        return
 
-    level = detect_level(reading.value, device_thresholds)
-    if level is not None:
-        logger.info('Device %s: value %s is %s', reading.device_uuid, reading.value, level.value)
-    return level
+    level = max((level for level, threshold in device_thresholds.items() if reading.value > threshold), default=None)
+    if level == levels.get(reading.device_uuid):
+        return
+
+    await session.change_level(reading, level)
+    if level is None:
+        del levels[reading.device_uuid]
+    else:
+        levels[reading.device_uuid] = level
+    logger.info('Device %s: value %s, level %s', reading.device_uuid, reading.value, level)

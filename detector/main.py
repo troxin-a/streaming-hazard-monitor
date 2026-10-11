@@ -2,7 +2,7 @@ import asyncio
 import logging
 
 from detector.consumer import create_consumer
-from detector.services import handle_reading
+from detector.services import handle_readings
 from detector.sessions import DetectorSession
 from shared.config.session import async_session_maker
 
@@ -21,7 +21,7 @@ async def main() -> None:
                 result = await consumer.getmany(timeout_ms=1000, max_records=100)
                 for tp, messages in result.items():
                     if messages:
-                        await handle_reading(messages, thresholds, levels, detector_session)
+                        await handle_readings(messages, thresholds, levels, detector_session)
                         await consumer.commit({tp: messages[-1].offset + 1})
         finally:
             await consumer.stop()

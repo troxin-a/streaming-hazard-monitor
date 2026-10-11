@@ -12,7 +12,7 @@ from shared.reading.schemes import ReadingMessageScheme
 logger = logging.getLogger(__name__)
 
 
-async def handle_reading(
+async def handle_readings(
         batch: list[ConsumerRecord],
         thresholds: dict[UUID, dict[AlertLevel, Decimal]],
         levels: dict[UUID, AlertLevel | None],
@@ -32,7 +32,7 @@ async def handle_reading(
             logger.warning('No thresholds for device %s', reading.device_uuid)
             continue
 
-        level = max((level for level, threshold in device_thresholds.items() if reading.value > threshold), default=None)
+        level = max((level for level, ts in device_thresholds.items() if reading.value > ts), default=None)
         if level == levels.get(reading.device_uuid):
             continue
 

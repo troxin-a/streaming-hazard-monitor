@@ -95,24 +95,3 @@ class DetectorSession(BaseSession):
             for uuid in to_create:
                 if uuid not in result:
                     logger.warning('Alert is not saved: device %s is not found', uuid)
-
-            # query = (
-            #     update(AlertDB)
-            #     .where(AlertDB.device_uuid == reading.device_uuid, AlertDB.ended_at.is_(None))
-            #     .values(ended_at=reading.received_at)
-            # )
-            # await self.session.execute(query)
-            # if level is None:
-            #     return
-            #
-            # columns = [AlertDB.device_uuid, AlertDB.building_uuid, AlertDB.level, AlertDB.value, AlertDB.started_at]
-            # alert = select(
-            #     DeviceDB.uuid,
-            #     DeviceDB.building_uuid,
-            #     literal(level, AlertDB.level.type),
-            #     literal(reading.value, AlertDB.value.type),
-            #     literal(reading.received_at, AlertDB.started_at.type),
-            # ).filter_by(uuid=reading.device_uuid)
-            # query = insert(AlertDB).from_select(columns, alert).returning(AlertDB.uuid)
-            # if await self.session.scalar(query) is None:
-            #     logger.warning('Alert is not saved: device %s is not found', reading.device_uuid)

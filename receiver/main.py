@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi_pagination import add_pagination
 from starlette.middleware.cors import CORSMiddleware
 
-from receiver.producers import create_producer
+from receiver.producer import create_producer
 from receiver.routers import telemetry_router
 from receiver.sessions import TelemetrySession
 from receiver.urls import telemetry_url

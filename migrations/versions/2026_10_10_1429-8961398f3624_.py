@@ -16,14 +16,14 @@ down_revision: Union[str, Sequence[str], None] = '1584e527bc3a'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
-# Примерные значения для учебного проекта, по уровням 1-4.
+
 DEFAULT_THRESHOLDS = {
-    'co': (20, 50, 100, 300),               # ppm
-    'co2': (1000, 2000, 5000, 15000),       # ppm
-    'methane': (5, 10, 20, 50),             # % НКПР
-    'smoke': (0.05, 0.1, 0.15, 0.2),        # дБ/м
-    'temperature': (54, 64, 69, 84),        # °C
-    'radiation': (0.3, 0.6, 1.2, 6),        # мкЗв/ч
+    'co': (20, 50, 100, 300),
+    'co2': (1000, 2000, 5000, 15000),
+    'methane': (5, 10, 20, 50),
+    'smoke': (0.05, 0.1, 0.15, 0.2),
+    'temperature': (54, 64, 69, 84),
+    'radiation': (0.3, 0.6, 1.2, 6),
 }
 
 

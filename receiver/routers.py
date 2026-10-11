@@ -6,7 +6,7 @@ from fastapi import Depends
 from starlette import status
 
 from receiver.auth import current_device_uuid
-from receiver.producers import get_producer, send_reading
+from receiver.producer import get_producer, send_reading
 from receiver.urls import telemetry_url
 from shared.base.responses import responses
 from shared.base.router import FastAPIRouter

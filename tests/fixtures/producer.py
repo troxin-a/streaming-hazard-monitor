@@ -5,7 +5,7 @@ import pytest
 from aiokafka import AIOKafkaProducer
 
 from receiver.main import app
-from receiver.producers import get_producer
+from receiver.producer import get_producer
 
 
 @pytest.fixture(scope='function')

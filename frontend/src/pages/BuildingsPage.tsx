@@ -4,11 +4,10 @@ import { useState } from 'react';
 import { type Building, buildings } from '@/entities/building';
 import { canManage } from '@/features/auth/access';
 import { useCurrentUser } from '@/features/auth/hooks';
+import { BuildingCard } from '@/features/buildings/BuildingCard';
 import { BuildingFormDialog } from '@/features/buildings/BuildingFormDialog';
-import { ConfirmDialog } from '@/shared/ui/ConfirmDialog';
 import { type Column, DataTable } from '@/shared/ui/DataTable';
 import { PageHeader } from '@/shared/ui/PageHeader';
-import { RowActions } from '@/shared/ui/RowActions';
 
 const columns: Column<Building>[] = [
   { header: 'Название', render: (building) => building.name },
@@ -17,42 +16,24 @@ const columns: Column<Building>[] = [
 
 export function BuildingsPage() {
   const manage = canManage(useCurrentUser());
-  const [editing, setEditing] = useState<Building | 'new' | null>(null);
-  const [deleting, setDeleting] = useState<Building | null>(null);
+  const [creating, setCreating] = useState(false);
 
   return (
     <Stack spacing={2}>
-      <PageHeader title="Здания" onAdd={manage ? () => setEditing('new') : undefined} />
+      <PageHeader title="Здания" onAdd={manage ? () => setCreating(true) : undefined} />
       <DataTable
         resource={buildings}
         columns={columns}
         searchLabel="Поиск по названию"
-        actions={
+        card={
           manage
-            ? (building) => (
-                <RowActions
-                  onEdit={() => setEditing(building)}
-                  onDelete={() => setDeleting(building)}
-                />
+            ? (building, onClose) => (
+                <BuildingCard building={building} columns={columns} onClose={onClose} />
               )
             : undefined
         }
       />
-      {editing && (
-        <BuildingFormDialog
-          building={editing === 'new' ? undefined : editing}
-          onClose={() => setEditing(null)}
-        />
-      )}
-      {deleting && (
-        <ConfirmDialog
-          title="Удалить здание?"
-          text={`Здание «${deleting.name}» будет удалено.`}
-          action={() => buildings.remove(deleting.uuid)}
-          successMessage="Здание удалено"
-          onClose={() => setDeleting(null)}
-        />
-      )}
+      {creating && <BuildingFormDialog onClose={() => setCreating(false)} />}
     </Stack>
   );
 }

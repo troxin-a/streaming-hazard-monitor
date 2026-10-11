@@ -1,11 +1,9 @@
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
-import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
-import DialogTitle from '@mui/material/DialogTitle';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
 import Stack from '@mui/material/Stack';
@@ -16,6 +14,7 @@ import { useState } from 'react';
 import { type Device, issueApiKey } from '@/entities/device';
 import { getErrorMessage } from '@/shared/api/client';
 import { useResourceMutation } from '@/shared/api/hooks';
+import { DialogWindow } from '@/shared/ui/DialogWindow';
 
 interface ApiKeyDialogProps {
   device: Device;
@@ -39,9 +38,12 @@ export function ApiKeyDialog({ device, onClose }: ApiKeyDialogProps) {
   };
 
   return (
-    <Dialog open fullWidth maxWidth="sm" onClose={issue.isPending ? undefined : onClose}>
-      <DialogTitle>API-ключ датчика «{device.name}»</DialogTitle>
-      <DialogContent>
+    <DialogWindow
+      title={`API-ключ датчика «${device.name}»`}
+      maxWidth="sm"
+      onClose={issue.isPending ? undefined : onClose}
+    >
+      <DialogContent sx={{ pt: 0 }}>
         <Stack spacing={2}>
           {issue.isError && <Alert severity="error">{getErrorMessage(issue.error)}</Alert>}
           {key ? (
@@ -86,6 +88,6 @@ export function ApiKeyDialog({ device, onClose }: ApiKeyDialogProps) {
           </Button>
         )}
       </DialogActions>
-    </Dialog>
+    </DialogWindow>
   );
 }

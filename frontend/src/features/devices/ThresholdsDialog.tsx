@@ -2,10 +2,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
-import DialogTitle from '@mui/material/DialogTitle';
 import InputAdornment from '@mui/material/InputAdornment';
 import Skeleton from '@mui/material/Skeleton';
 import Stack from '@mui/material/Stack';
@@ -31,6 +29,7 @@ import {
 } from '@/entities/device';
 import { getErrorMessage } from '@/shared/api/client';
 import { useResourceMutation } from '@/shared/api/hooks';
+import { DialogWindow } from '@/shared/ui/DialogWindow';
 import { errorProps } from '@/shared/ui/form';
 
 /** Число, которое помещается в Numeric(10, 3) на сервере. */
@@ -200,8 +199,7 @@ export function ThresholdsDialog({ device, editable, onClose }: ThresholdsDialog
   });
 
   return (
-    <Dialog open fullWidth maxWidth="xs" onClose={onClose}>
-      <DialogTitle>Пороги датчика «{device.name}»</DialogTitle>
+    <DialogWindow title={`Пороги датчика «${device.name}»`} onClose={onClose}>
       {data ? (
         <ThresholdsForm device={device} thresholds={data} editable={editable} onClose={onClose} />
       ) : (
@@ -217,6 +215,6 @@ export function ThresholdsDialog({ device, editable, onClose }: ThresholdsDialog
           </DialogActions>
         </>
       )}
-    </Dialog>
+    </DialogWindow>
   );
 }

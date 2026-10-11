@@ -12,7 +12,7 @@ import TableHead from '@mui/material/TableHead';
 import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
 import TextField from '@mui/material/TextField';
-import { type ReactNode, useState } from 'react';
+import { type KeyboardEvent, type ReactNode, useState } from 'react';
 
 import { getErrorMessage } from '@/shared/api/client';
 import { useResourcePage } from '@/shared/api/hooks';
@@ -31,8 +31,8 @@ export interface Column<T> {
 interface DataTableProps<T> {
   resource: Listable<T>;
   columns: Column<T>[];
-  /** Кнопки действий над строкой; без них колонка действий не показывается. */
-  actions?: (row: T) => ReactNode;
+  /** Карточка записи, которая открывается по клику на строку; без неё строки не нажимаются. */
+  card?: (row: T, onClose: () => void) => ReactNode;
   /** Подпись поля поиска, например «Поиск по названию». */
   searchLabel: string;
 }
@@ -41,9 +41,10 @@ interface DataTableProps<T> {
 export function DataTable<T extends { uuid: string }>({
   resource,
   columns,
-  actions,
+  card,
   searchLabel,
 }: DataTableProps<T>) {
+  const [openedUuid, setOpenedUuid] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [size, setSize] = useState(PAGE_SIZES[0]);
   const [searchText, setSearchText] = useState('');
@@ -79,7 +80,9 @@ export function DataTable<T extends { uuid: string }>({
     setPage(lastPage);
   }
 
-  const columnCount = columns.length + (actions ? 1 : 0);
+  // Запись берётся из загруженной страницы, поэтому карточка показывает данные после правки
+  // и пропадает вместе с удалённой записью.
+  const opened = data.items.find((row) => row.uuid === openedUuid);
 
   return (
     <Paper variant="outlined">
@@ -110,25 +113,32 @@ export function DataTable<T extends { uuid: string }>({
               {columns.map((column) => (
                 <TableCell key={column.header}>{column.header}</TableCell>
               ))}
-              {actions && <TableCell align="right">Действия</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
             {data.items.map((row) => (
-              <TableRow key={row.uuid} hover>
+              <TableRow
+                key={row.uuid}
+                hover
+                {...(card && {
+                  tabIndex: 0,
+                  sx: { cursor: 'pointer' },
+                  onClick: () => setOpenedUuid(row.uuid),
+                  onKeyDown: (event: KeyboardEvent) => {
+                    if (event.key === 'Enter') {
+                      setOpenedUuid(row.uuid);
+                    }
+                  },
+                })}
+              >
                 {columns.map((column) => (
                   <TableCell key={column.header}>{column.render(row)}</TableCell>
                 ))}
-                {actions && (
-                  <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
-                    {actions(row)}
-                  </TableCell>
-                )}
               </TableRow>
             ))}
             {data.items.length === 0 && (
               <TableRow>
-                <TableCell colSpan={columnCount} align="center" sx={{ color: 'text.secondary' }}>
+                <TableCell colSpan={columns.length} align="center" sx={{ color: 'text.secondary' }}>
                   {search ? 'Ничего не найдено' : 'Записей нет'}
                 </TableCell>
               </TableRow>
@@ -148,6 +158,7 @@ export function DataTable<T extends { uuid: string }>({
           setPage(0);
         }}
       />
+      {card && opened && card(opened, () => setOpenedUuid(null))}
     </Paper>
   );
 }

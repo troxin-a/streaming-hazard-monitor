@@ -1,13 +1,13 @@
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
-import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
-import DialogTitle from '@mui/material/DialogTitle';
 import Stack from '@mui/material/Stack';
 import type { FormEventHandler, ReactNode } from 'react';
 
 import { getErrorMessage } from '@/shared/api/client';
+
+import { DialogWindow } from './DialogWindow';
 
 interface FormDialogProps {
   title: string;
@@ -29,10 +29,9 @@ export function FormDialog({
   children,
 }: FormDialogProps) {
   return (
-    <Dialog open fullWidth maxWidth="xs" onClose={pending ? undefined : onClose}>
+    <DialogWindow title={title} onClose={pending ? undefined : onClose}>
       <form noValidate onSubmit={onSubmit}>
-        <DialogTitle>{title}</DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ pt: 0 }}>
           <Stack spacing={2} sx={{ pt: 1 }}>
             {error != null && <Alert severity="error">{getErrorMessage(error)}</Alert>}
             {children}
@@ -47,6 +46,6 @@ export function FormDialog({
           </Button>
         </DialogActions>
       </form>
-    </Dialog>
+    </DialogWindow>
   );
 }

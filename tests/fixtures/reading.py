@@ -40,3 +40,8 @@ def build_record(value: bytes) -> ConsumerRecord:
 def build_reading_record(device_uuid: UUID, value: str) -> ConsumerRecord:
     """Build the record of the readings topic with the reading of the device."""
     return build_record(build_reading(device_uuid, Decimal(value)).model_dump_json().encode())
+
+
+def build_reading_records(device_uuid: UUID, *values: str) -> list[ConsumerRecord]:
+    """Build the records of the readings topic with the readings of the device in a row."""
+    return [build_reading_record(device_uuid, value) for value in values]

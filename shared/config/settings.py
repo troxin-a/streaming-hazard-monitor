@@ -70,6 +70,11 @@ class KafkaSettings(EnvSettings):
     KAFKA_GROUP_THRESHOLD_DETECTOR: str = 'threshold-detector'
 
 
+class DetectorSettings(EnvSettings):
+    DETECTOR_RISE_COUNT: int = 5
+    DETECTOR_FALL_COUNT: int = 15
+
+
 # class CelerySettings(EnvSettings):
 #     CELERY_BROKER_URL: str
 #     CELERY_RESULT_BACKEND: str
@@ -90,6 +95,7 @@ class Config(EnvSettings):
     jwt: JWTSettings = JWTSettings()
     database: DatabaseSettings = DatabaseSettings()
     kafka: KafkaSettings = KafkaSettings()
+    detector: DetectorSettings = DetectorSettings()
     # celery: CelerySettings = CelerySettings()
     # redis: RedisSettings = RedisSettings()
 

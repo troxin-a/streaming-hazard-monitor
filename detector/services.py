@@ -4,11 +4,33 @@ from uuid import UUID
 from aiokafka import ConsumerRecord
 from pydantic import ValidationError
 
-from detector.devices_state import DeviceState
+from detector.devices_state import DeviceState, LEVEL_RANKS
 from detector.sessions import DetectorSession
+from shared.config.settings import config
+from shared.device.enums import AlertLevel
 from shared.reading.schemes import ReadingMessageScheme
 
 logger = logging.getLogger(__name__)
+
+
+def count_reading(state: DeviceState, level: AlertLevel | None) -> bool:
+    """Count the level of the reading into the series of the device and change its level at the end of the series."""
+    rank = LEVEL_RANKS[level]
+    if rank > LEVEL_RANKS[state.level]:
+        state.series_count = state.series_count + 1 if state.series_count > 0 else 1
+        if state.series_count < config.detector.DETECTOR_RISE_COUNT:
+            return False
+    elif rank < LEVEL_RANKS[state.level]:
+        state.series_count = state.series_count - 1 if state.series_count < 0 else -1
+        if -state.series_count < config.detector.DETECTOR_FALL_COUNT:
+            return False
+    else:
+        state.series_count = 0
+        return False
+
+    state.level = level
+    state.series_count = 0
+    return True
 
 
 async def handle_readings(
@@ -16,7 +38,7 @@ async def handle_readings(
         states: dict[UUID, DeviceState],
         session: DetectorSession,
 ) -> None:
-    """Change the alert of the device when the level of the reading from the message differs from its level."""
+    """Change the alert of the device when a series of readings of other levels changes its level."""
     readings = []
     for message in batch:
         try:
@@ -31,11 +53,8 @@ async def handle_readings(
             continue
 
         level = max((level for level, ts in state.thresholds.items() if reading.value > ts), default=None)
-        if level == state.level:
-            continue
-
-        state.level = level
-        readings.append((reading, level))
+        if count_reading(state, level):
+            readings.append((reading, state.level))
 
     if readings:
         await session.change_level(readings)

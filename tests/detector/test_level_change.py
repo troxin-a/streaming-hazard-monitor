@@ -2,7 +2,7 @@ import pytest
 
 from detector.sessions import DetectorSession
 from shared.device.enums import AlertLevel
-from tests.fixtures.alert import ALERT_LEVEL, ALERT_STARTED_AT, ALERT_VALUE, get_alerts
+from tests.fixtures.alert import ALERT_LEVEL, ALERT_STARTED_AT, ALERT_VALUE, get_alerts, get_levels
 from tests.fixtures.reading import build_reading, READING_RECEIVED_AT, READING_VALUE, UNKNOWN_DEVICE_UUID
 
 pytestmark = pytest.mark.integration
@@ -15,7 +15,7 @@ class TestCaseLevelChange:
         """Test alert of the level starts in the building of the device at the time of the reading with its value."""
         session = DetectorSession(override_get_async_session)
         await session.change_level([(build_reading(device.uuid), AlertLevel.LEVEL_3)])
-        assert await session.get_levels() == {device.uuid: AlertLevel.LEVEL_3}
+        assert await get_levels(override_get_async_session) == {device.uuid: AlertLevel.LEVEL_3}
         assert await get_alerts(override_get_async_session) == [
             (building.uuid, AlertLevel.LEVEL_3, READING_VALUE, READING_RECEIVED_AT, None),
         ]
@@ -24,7 +24,7 @@ class TestCaseLevelChange:
         """Test alert in progress ends at the time of the reading when the device has no level."""
         session = DetectorSession(override_get_async_session)
         await session.change_level([(build_reading(device.uuid), None)])
-        assert await session.get_levels() == {}
+        assert await get_levels(override_get_async_session) == {}
         assert await get_alerts(override_get_async_session) == [
             (building.uuid, ALERT_LEVEL, ALERT_VALUE, ALERT_STARTED_AT, READING_RECEIVED_AT),
         ]
@@ -33,7 +33,7 @@ class TestCaseLevelChange:
         """Test alert in progress ends and the alert of the other level starts."""
         session = DetectorSession(override_get_async_session)
         await session.change_level([(build_reading(device.uuid), AlertLevel.LEVEL_4)])
-        assert await session.get_levels() == {device.uuid: AlertLevel.LEVEL_4}
+        assert await get_levels(override_get_async_session) == {device.uuid: AlertLevel.LEVEL_4}
         assert await get_alerts(override_get_async_session) == [
             (building.uuid, ALERT_LEVEL, ALERT_VALUE, ALERT_STARTED_AT, READING_RECEIVED_AT),
             (building.uuid, AlertLevel.LEVEL_4, READING_VALUE, READING_RECEIVED_AT, None),
@@ -50,7 +50,7 @@ class TestCaseLevelChange:
         """Test alert does not start for the device that does not exist."""
         session = DetectorSession(override_get_async_session)
         await session.change_level([(build_reading(UNKNOWN_DEVICE_UUID), AlertLevel.LEVEL_3)])
-        assert await session.get_levels() == {}
+        assert await get_levels(override_get_async_session) == {}
         assert await get_alerts(override_get_async_session) == []
 
     async def test_level_change_ended_alert(self, override_get_async_session, device, ended_alert):
@@ -65,7 +65,8 @@ class TestCaseLevelChange:
         """Test alert in progress of another device does not end."""
         session = DetectorSession(override_get_async_session)
         await session.change_level([(build_reading(device_with_api_key.uuid), AlertLevel.LEVEL_1)])
-        assert await session.get_levels() == {device.uuid: ALERT_LEVEL, device_with_api_key.uuid: AlertLevel.LEVEL_1}
+        levels = await get_levels(override_get_async_session)
+        assert levels == {device.uuid: ALERT_LEVEL, device_with_api_key.uuid: AlertLevel.LEVEL_1}
 
     async def test_level_change_several_devices(
             self, override_get_async_session, device, device_with_api_key, neighbour_device, alert,
@@ -78,7 +79,7 @@ class TestCaseLevelChange:
             (build_reading(neighbour_device.uuid), AlertLevel.LEVEL_4),
         ]
         await session.change_level(changes)
-        assert await session.get_levels() == {
+        assert await get_levels(override_get_async_session) == {
             device_with_api_key.uuid: AlertLevel.LEVEL_1,
             neighbour_device.uuid: AlertLevel.LEVEL_4,
         }

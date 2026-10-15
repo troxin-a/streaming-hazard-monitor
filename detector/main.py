@@ -12,8 +12,7 @@ async def main() -> None:
     consumer = create_consumer()
     async with async_session_maker() as session:
         detector_session = DetectorSession(session)
-        thresholds = await detector_session.get_thresholds()
-        levels = await detector_session.get_levels()
+        states = await detector_session.get_states()
 
         await consumer.start()
         try:
@@ -21,7 +20,7 @@ async def main() -> None:
                 result = await consumer.getmany(timeout_ms=1000, max_records=100)
                 for tp, messages in result.items():
                     if messages:
-                        await handle_readings(messages, thresholds, levels, detector_session)
+                        await handle_readings(messages, states, detector_session)
                         await consumer.commit({tp: messages[-1].offset + 1})
         finally:
             await consumer.stop()

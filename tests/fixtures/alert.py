@@ -45,6 +45,13 @@ async def get_alerts(
         return (await override_get_async_session.execute(query.order_by(AlertDB.started_at))).all()
 
 
+async def get_levels(override_get_async_session: AsyncSession) -> dict[UUID, AlertLevel]:
+    """Get the level of the alert in progress of every device that has one."""
+    async with override_get_async_session.begin():
+        query = select(AlertDB.device_uuid, AlertDB.level).where(AlertDB.ended_at.is_(None))
+        return {row.device_uuid: row.level for row in await override_get_async_session.execute(query)}
+
+
 @pytest.fixture(scope='function')
 async def alert(override_get_async_session, device, building) -> AlertDB:
     """Alert in progress of the device fixture."""

@@ -5,6 +5,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared import DefaultThresholdDB, DeviceThresholdDB
+from detector.devices_state import DeviceState
 from shared.device.enums import AlertLevel, DeviceType
 from tests.fixtures.reading import DEVICE_UUID, SECOND_DEVICE_UUID
 
@@ -31,7 +32,14 @@ NEW_THRESHOLDS = {
 
 LEVELS = [level.value for level in AlertLevel]
 
-LOADED_THRESHOLDS = {DEVICE_UUID: DEFAULT_VALUES, SECOND_DEVICE_UUID: DEFAULT_VALUES}
+
+def build_states(levels: dict[UUID, AlertLevel] | None = None) -> dict[UUID, DeviceState]:
+    """Build the states of the two devices with the default thresholds and the levels."""
+    levels = levels or {}
+    return {
+        device_uuid: DeviceState(thresholds=DEFAULT_VALUES, level=levels.get(device_uuid))
+        for device_uuid in (DEVICE_UUID, SECOND_DEVICE_UUID)
+    }
 
 
 async def create_default_thresholds(

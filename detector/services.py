@@ -1,12 +1,11 @@
 import logging
-from decimal import Decimal
 from uuid import UUID
 
 from aiokafka import ConsumerRecord
 from pydantic import ValidationError
 
+from detector.devices_state import DeviceState
 from detector.sessions import DetectorSession
-from shared.device.enums import AlertLevel
 from shared.reading.schemes import ReadingMessageScheme
 
 logger = logging.getLogger(__name__)
@@ -14,8 +13,7 @@ logger = logging.getLogger(__name__)
 
 async def handle_readings(
         batch: list[ConsumerRecord],
-        thresholds: dict[UUID, dict[AlertLevel, Decimal]],
-        levels: dict[UUID, AlertLevel | None],
+        states: dict[UUID, DeviceState],
         session: DetectorSession,
 ) -> None:
     """Change the alert of the device when the level of the reading from the message differs from its level."""
@@ -27,16 +25,16 @@ async def handle_readings(
             logger.exception('Invalid reading message: %r', message)
             continue
 
-        device_thresholds = thresholds.get(reading.device_uuid)
-        if device_thresholds is None:
+        state = states.get(reading.device_uuid)
+        if state is None:
             logger.warning('No thresholds for device %s', reading.device_uuid)
             continue
 
-        level = max((level for level, ts in device_thresholds.items() if reading.value > ts), default=None)
-        if level == levels.get(reading.device_uuid):
+        level = max((level for level, ts in state.thresholds.items() if reading.value > ts), default=None)
+        if level == state.level:
             continue
 
-        levels[reading.device_uuid] = level
+        state.level = level
         readings.append((reading, level))
 
     if readings:

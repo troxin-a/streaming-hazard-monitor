@@ -16,5 +16,6 @@ LEVEL_RANKS: dict[AlertLevel | None, int] = {
 class DeviceState:
     """State of the device kept by the threshold detector."""
     thresholds: dict[AlertLevel, Decimal]
+    partition: int | None = None
     level: AlertLevel | None = None
     series_count: int = 0

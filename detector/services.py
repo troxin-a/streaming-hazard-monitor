@@ -52,6 +52,7 @@ async def handle_readings(
             logger.warning('No thresholds for device %s', reading.device_uuid)
             continue
 
+        state.partition = message.partition
         level = max((level for level, ts in state.thresholds.items() if reading.value > ts), default=None)
         if count_reading(state, level):
             readings.append((reading, state.level))

@@ -47,6 +47,12 @@ class TestCaseReadingHandle:
         assert level == AlertLevel.LEVEL_3
         assert states[DEVICE_UUID].level == AlertLevel.LEVEL_3
 
+    async def test_reading_handle_partition(self, detector_session):
+        """Test reading sets the partition of its message in the state of the device."""
+        states = build_states()
+        await handle_readings(build_reading_records(DEVICE_UUID, '3'), states, detector_session)
+        assert states[DEVICE_UUID].partition == 0
+
     async def test_reading_handle_short_rise(self, detector_session):
         """Test series of readings above the level shorter than the rise count changes nothing."""
         states = build_states()

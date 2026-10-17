@@ -1,19 +1,31 @@
 import asyncio
 import logging
+from uuid import UUID
 
-from detector.consumer import create_consumer
+from aiokafka.errors import CommitFailedError
+
+from detector.consumer import create_consumer, ConsumerRebalancer
+from detector.devices_state import DeviceState
 from detector.services import handle_readings
 from detector.sessions import DetectorSession
 from shared.config.session import async_session_maker
+from shared.config.settings import config
+
+logger = logging.getLogger(__name__)
 
 
 async def main() -> None:
-    """Run the threshold detector with the thresholds and the alert levels loaded at the start."""
+    """Run the threshold detector with the device states loaded when partitions are assigned to it."""
     consumer = create_consumer()
+
     async with async_session_maker() as session:
         detector_session = DetectorSession(session)
-        states = await detector_session.get_states()
+        states: dict[UUID, DeviceState] = {}
 
+        consumer.subscribe(
+            topics=[config.kafka.KAFKA_TOPIC_SENSOR_READINGS],
+            listener=ConsumerRebalancer(states, async_session_maker),
+        )
         await consumer.start()
         try:
             while True:
@@ -21,7 +33,10 @@ async def main() -> None:
                 for tp, messages in result.items():
                     if messages:
                         await handle_readings(messages, states, detector_session)
-                        await consumer.commit({tp: messages[-1].offset + 1})
+                        try:
+                            await consumer.commit({tp: messages[-1].offset + 1})
+                        except CommitFailedError:
+                            logger.warning('Offset of partition %s is not committed: the group has rebalanced', tp)
         finally:
             await consumer.stop()
 

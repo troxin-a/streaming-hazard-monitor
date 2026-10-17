@@ -95,6 +95,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_started
+    deploy:
+      replicas: 1
 
   frontend:
     build: ./frontend

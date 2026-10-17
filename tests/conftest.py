@@ -102,6 +102,12 @@ async def override_get_async_session() -> AsyncGenerator[AsyncSession, None]:
             await session.close()
 
 
+@pytest.fixture(scope='function')
+def session_maker() -> async_sessionmaker[AsyncSession]:
+    """Session maker of the test database."""
+    return async_session_maker
+
+
 @pytest.fixture(autouse=True, scope='function')
 async def prepare_database():
     """Prepare database."""

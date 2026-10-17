@@ -16,7 +16,7 @@
 
 ## Запуск
 
-Нужны Docker и Docker Compose.
+Нужны Docker и Docker Compose
 
 1. Создать файл с настройками и поправить в нём значения:
 

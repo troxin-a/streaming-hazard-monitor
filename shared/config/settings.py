@@ -70,24 +70,13 @@ class KafkaSettings(EnvSettings):
     KAFKA_GROUP_THRESHOLD_DETECTOR: str = 'threshold-detector'
 
 
+class ReceiverSettings(EnvSettings):
+    RECEIVER_DEVICES_REFRESH_SECONDS: int = 60
+
+
 class DetectorSettings(EnvSettings):
     DETECTOR_RISE_COUNT: int = 5
     DETECTOR_FALL_COUNT: int = 15
-
-
-# class CelerySettings(EnvSettings):
-#     CELERY_BROKER_URL: str
-#     CELERY_RESULT_BACKEND: str
-#
-#
-# class RedisSettings(EnvSettings):
-#     REDIS_HOST: str
-#     REDIS_PORT: str
-#
-#     @property
-#     def redis_url(self):
-#         """Redis URL."""
-#         return f'redis://{self.REDIS_HOST}:{self.REDIS_PORT}'
 
 
 class Config(EnvSettings):
@@ -95,9 +84,8 @@ class Config(EnvSettings):
     jwt: JWTSettings = JWTSettings()
     database: DatabaseSettings = DatabaseSettings()
     kafka: KafkaSettings = KafkaSettings()
+    receiver: ReceiverSettings = ReceiverSettings()
     detector: DetectorSettings = DetectorSettings()
-    # celery: CelerySettings = CelerySettings()
-    # redis: RedisSettings = RedisSettings()
 
 
 config = Config()

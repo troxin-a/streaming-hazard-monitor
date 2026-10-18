@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 from typing import AsyncIterator, Any
 
@@ -7,6 +8,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 from receiver.producer import create_producer
 from receiver.routers import telemetry_router
+from receiver.services import refresh_devices
 from receiver.sessions import TelemetrySession
 from receiver.urls import telemetry_url
 from shared.config.session import async_session_maker
@@ -27,17 +29,19 @@ SWAGGER_UI_SETTINGS = {
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[dict[str, Any]]:
-    """Keep the producer running while the application works."""
+    """Keep the producer and the refresh of the devices running while the application works."""
     async with async_session_maker() as session:
         devices = await TelemetrySession(session).get_devices()
     telemetry_producer = create_producer()
     await telemetry_producer.start()
+    refresh_task = asyncio.create_task(refresh_devices(devices))
 
     yield {
         'telemetry_producer': telemetry_producer,
         'devices': devices
     }
 
+    refresh_task.cancel()
     await telemetry_producer.stop()
 
 

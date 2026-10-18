@@ -6,7 +6,8 @@ from aiokafka.errors import CommitFailedError
 
 from detector.consumer import create_consumer, ConsumerRebalancer
 from detector.devices_state import DeviceState
-from detector.services import handle_readings, refresh_thresholds
+from detector.producer import create_producer
+from detector.services import handle_readings, refresh_thresholds, save_level_changes
 from detector.sessions import DetectorSession
 from shared.config.session import async_session_maker
 from shared.config.settings import config
@@ -17,6 +18,7 @@ logger = logging.getLogger(__name__)
 async def main() -> None:
     """Run the threshold detector with the device states loaded when partitions are assigned to it."""
     consumer = create_consumer()
+    producer = create_producer()
 
     async with async_session_maker() as session:
         detector_session = DetectorSession(session)
@@ -26,6 +28,7 @@ async def main() -> None:
             topics=[config.kafka.KAFKA_TOPIC_SENSOR_READINGS],
             listener=ConsumerRebalancer(states),
         )
+        await producer.start()
         await consumer.start()
         refresh_task = asyncio.create_task(refresh_thresholds(states, consumer))
         try:
@@ -33,7 +36,8 @@ async def main() -> None:
                 result = await consumer.getmany(timeout_ms=1000, max_records=100)
                 for tp, messages in result.items():
                     if messages:
-                        await handle_readings(messages, states, detector_session)
+                        changes = handle_readings(messages, states)
+                        await save_level_changes(changes, producer, detector_session)
                         try:
                             await consumer.commit({tp: messages[-1].offset + 1})
                         except CommitFailedError:
@@ -41,6 +45,7 @@ async def main() -> None:
         finally:
             refresh_task.cancel()
             await consumer.stop()
+            await producer.stop()
 
 
 if __name__ == '__main__':

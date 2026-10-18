@@ -18,6 +18,7 @@ def get_producer(request: Request) -> AIOKafkaProducer:
 async def send_reading(producer: AIOKafkaProducer, reading: ReadingMessageScheme) -> None:
     """Send the reading to the readings topic."""
     topic = config.kafka.KAFKA_TOPIC_SENSOR_READINGS
+    a = 5 / 0
     message = reading.model_dump_json().encode()
     key = str(reading.device_uuid).encode()
     await producer.send_and_wait(topic, message, key)

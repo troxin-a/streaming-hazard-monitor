@@ -9,10 +9,11 @@ from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import (
     and_, case, ColumnElement, delete, insert, literal_column, or_, Row, select, Select, true, update, Update,
 )
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import contains_eager, joinedload
 from sqlalchemy.sql.functions import coalesce
 from starlette import status
 
+from shared.alert.models import AlertDB
 from shared.base.sessions import BaseSession
 from shared.building.models import BuildingDB
 from shared.device.enums import AlertLevel
@@ -28,14 +29,29 @@ PREVIOUS_KEY_HASH = literal_column('old.key_hash').label('previous_key_hash')
 class DeviceSession(BaseSession):
     """Device session."""
 
-    async def get_devices(self, user: UserDB, search: str | None = None) -> Page[DeviceDB]:
-        """Get devices visible to the user, optionally narrowed by a part of the name or the serial number."""
+    async def get_devices(
+            self,
+            user: UserDB,
+            search: str | None = None,
+            building_uuid: UUID | None = None,
+    ) -> Page[DeviceDB]:
+        """Get devices visible to the user with their levels, optionally narrowed by the search and the building."""
         async with self.session.begin():
-            query = select(DeviceDB).where(self._visible(user)).order_by(DeviceDB.created_at.desc())
+            query = (
+                select(DeviceDB)
+                .outerjoin(AlertDB, and_(AlertDB.device_uuid == DeviceDB.uuid, AlertDB.ended_at.is_(None)))
+                .where(self._visible(user))
+                .order_by(DeviceDB.created_at.desc())
+            )
             if search:
                 pattern = f'%{search}%'
                 query = query.where(or_(DeviceDB.name.ilike(pattern), DeviceDB.serial_number.ilike(pattern)))
-            query = query.options(joinedload(DeviceDB.building).joinedload(BuildingDB.company))
+            if building_uuid:
+                query = query.where(DeviceDB.building_uuid == building_uuid)
+            query = query.options(
+                contains_eager(DeviceDB.alert_in_progress),
+                joinedload(DeviceDB.building).joinedload(BuildingDB.company),
+            )
             return await apaginate(self.session, query)
 
     async def create_device(self, data: DeviceCreateScheme, user: UserDB) -> DeviceDB:

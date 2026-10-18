@@ -2,8 +2,6 @@ from fastapi import FastAPI
 from fastapi_pagination import add_pagination
 from starlette.middleware.cors import CORSMiddleware
 
-from api.alert.routers import alert_router
-from api.alert.urls import alert_url
 from api.auth.routers import auth_router
 from api.auth.urls import auth_url
 from api.building.routers import building_router
@@ -40,7 +38,6 @@ app.include_router(user_router, prefix=user_url(), tags=['user'])
 app.include_router(company_router, prefix=company_url(), tags=['company'])
 app.include_router(building_router, prefix=building_url(), tags=['building'])
 app.include_router(device_router, prefix=device_url(), tags=['device'])
-app.include_router(alert_router, prefix=alert_url(), tags=['alert'])
 add_pagination(app)
 
 app.add_middleware(

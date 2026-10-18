@@ -45,3 +45,9 @@ jobs:
           python-version: '3.14'
       - run: pip install -r requirements.txt
       - run: pytest -n auto
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: docker build -t streaming-api .

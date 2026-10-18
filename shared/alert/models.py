@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Enum, UUID
+from sqlalchemy import DateTime, Enum, Index, text, UUID
 from sqlalchemy.orm import Mapped, relationship
 
 from shared.base.models import BaseDBModel, FK, mc
@@ -16,6 +16,11 @@ if TYPE_CHECKING:
 class AlertDB(BaseDBModel):
     """Alert database model."""
     __tablename__ = 'alerts'
+    __table_args__ = (
+        Index(
+            'uq_alerts_device_uuid_in_progress', 'device_uuid', unique=True, postgresql_where=text('ended_at IS NULL'),
+        ),
+    )
 
     device_uuid: Mapped[UUID] = mc(UUID(), FK('devices.uuid', ondelete='CASCADE'), index=True)
     building_uuid: Mapped[UUID] = mc(UUID(), FK('buildings.uuid', ondelete='CASCADE'), index=True)

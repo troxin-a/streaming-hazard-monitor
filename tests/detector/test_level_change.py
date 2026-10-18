@@ -1,8 +1,9 @@
 import pytest
+from sqlalchemy.exc import IntegrityError
 
 from detector.sessions import DetectorSession
 from shared.device.enums import AlertLevel
-from tests.fixtures.alert import ALERT_LEVEL, ALERT_STARTED_AT, get_alerts, get_levels
+from tests.fixtures.alert import ALERT_LEVEL, ALERT_STARTED_AT, create_alert, get_alerts, get_levels
 from tests.fixtures.reading import build_reading, READING_RECEIVED_AT, UNKNOWN_DEVICE_UUID
 
 pytestmark = pytest.mark.integration
@@ -95,3 +96,8 @@ class TestCaseLevelChange:
         assert await get_alerts(override_get_async_session) == [
             (building.uuid, AlertLevel.LEVEL_2, READING_RECEIVED_AT, None),
         ]
+
+    async def test_level_change_second_alert_in_progress(self, override_get_async_session, device, building, alert):
+        """Test the device cannot have a second alert in progress."""
+        with pytest.raises(IntegrityError):
+            await create_alert(override_get_async_session, device.uuid, building.uuid)

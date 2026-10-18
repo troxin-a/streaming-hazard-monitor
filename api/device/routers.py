@@ -2,13 +2,14 @@ from decimal import Decimal
 from typing import Sequence
 from uuid import UUID
 
-from fastapi import Depends
+from fastapi import Depends, WebSocket, WebSocketDisconnect
 from fastapi_pagination import Page
 from sqlalchemy import Row
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from api.auth.auth import current_director, JWTBearer
+from api.auth.auth import current_director, JWTBearer, websocket_user
+from api.device.websocket import level_websockets
 from api.device.sessions import DeviceSession, ThresholdSession
 from api.device.urls import device_url
 from shared.base.responses import responses
@@ -23,6 +24,7 @@ from shared.device.schemes import (
 from shared.user.models import UserDB
 
 device_router = FastAPIRouter(dependencies=[Depends(JWTBearer())])
+device_levels_router = FastAPIRouter()
 
 
 @device_router.get(
@@ -222,3 +224,23 @@ async def device_thresholds_delete(
 ) -> None:
     """Delete thresholds set for the device."""
     await ThresholdSession(session).delete_thresholds(uuid, user)
+
+
+@device_levels_router.websocket(device_url.device_levels)
+async def device_levels(
+        websocket: WebSocket,
+        token: str | None = None,
+        session: AsyncSession = Depends(get_async_session),
+) -> None:
+    """Send the level changes of the devices the user is allowed to see over the websocket."""
+    user = await websocket_user(token, session)
+    if user is None:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+    await websocket.accept()
+    level_websockets.add(websocket, user)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        level_websockets.remove(websocket)

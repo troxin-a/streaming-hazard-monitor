@@ -1,3 +1,7 @@
+import asyncio
+from contextlib import asynccontextmanager
+from typing import AsyncIterator
+
 from fastapi import FastAPI
 from fastapi_pagination import add_pagination
 from starlette.middleware.cors import CORSMiddleware
@@ -8,7 +12,8 @@ from api.building.routers import building_router
 from api.building.urls import building_url
 from api.company.routers import company_router
 from api.company.urls import company_url
-from api.device.routers import device_router
+from api.device.consumer import consume_level_changes
+from api.device.routers import device_levels_router, device_router
 from api.device.urls import device_url
 from api.user.routers import user_router
 from api.user.urls import user_url
@@ -26,7 +31,17 @@ SWAGGER_UI_SETTINGS = {
     'operationsSorter': 'alpha',
 }
 
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    """Keep reading the level changes of the devices while the application works."""
+    levels_task = asyncio.create_task(consume_level_changes())
+    yield
+    levels_task.cancel()
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title='Streaming hazard monitor',
     docs_url='/api/docs/',
     debug=DEBUG,
@@ -38,6 +53,7 @@ app.include_router(user_router, prefix=user_url(), tags=['user'])
 app.include_router(company_router, prefix=company_url(), tags=['company'])
 app.include_router(building_router, prefix=building_url(), tags=['building'])
 app.include_router(device_router, prefix=device_url(), tags=['device'])
+app.include_router(device_levels_router, prefix=device_url(), tags=['device'])
 add_pagination(app)
 
 app.add_middleware(

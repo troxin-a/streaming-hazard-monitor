@@ -3,12 +3,12 @@ import logging
 from uuid import UUID
 
 from aiokafka import AIOKafkaConsumer, AIOKafkaProducer, ConsumerRecord
-from pydantic import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
 from detector.devices_state import DeviceState, LEVEL_RANKS
 from detector.producer import send_level_changes
 from detector.sessions import DetectorSession
+from shared.base.kafka import read_message
 from shared.config.session import async_session_maker
 from shared.config.settings import config
 from shared.device.enums import AlertLevel
@@ -38,16 +38,14 @@ def count_reading(state: DeviceState, level: AlertLevel | None) -> bool:
 
 
 def handle_readings(
-        batch: list[ConsumerRecord],
+        batch: list[ConsumerRecord[bytes, bytes]],
         states: dict[UUID, DeviceState],
 ) -> list[tuple[ReadingMessageScheme, AlertLevel | None]]:
     """Count the readings of the batch into the series of their devices and return the level changes."""
     readings: list[tuple[ReadingMessageScheme, AlertLevel | None]] = []
     for message in batch:
-        try:
-            reading = ReadingMessageScheme.model_validate_json(message.value)
-        except ValidationError:
-            logger.exception(f'Invalid reading message: {message}')
+        reading = read_message(message, ReadingMessageScheme)
+        if reading is None:
             continue
 
         state = states.get(reading.device_uuid)

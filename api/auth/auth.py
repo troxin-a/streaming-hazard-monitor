@@ -43,6 +43,17 @@ class JWTBearer(HTTPBearer):
         return user
 
 
+async def websocket_user(token: str | None, session: AsyncSession) -> UserDB | None:
+    """Get the user of the access token passed to a websocket or none when the token is not valid."""
+    if not token:
+        return None
+    try:
+        payload = await JWTBearer.get_payload_access_token(token)
+    except HTTPException:
+        return None
+    return await UserSession(session).get_user_by_uuid(uuid=payload.get('user_uuid'))
+
+
 async def current_superuser(user: UserDB = Depends(JWTBearer().current_user)) -> UserDB:
     """Current user with superuser rights."""
     if not user.is_superuser:

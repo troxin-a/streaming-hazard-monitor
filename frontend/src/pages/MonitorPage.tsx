@@ -17,6 +17,7 @@ import {
   NORMAL_LABEL,
 } from '@/entities/device';
 import { BuildingDevices } from '@/features/monitor/BuildingDevices';
+import { useDeviceLevels } from '@/features/monitor/useDeviceLevels';
 import { useSecondTick } from '@/features/monitor/useMockReadings';
 import { getErrorMessage } from '@/shared/api/client';
 import { useResourcePage } from '@/shared/api/hooks';
@@ -47,6 +48,7 @@ function groupByCompany(items: Building[]): { company: Company; buildings: Build
 }
 
 export function MonitorPage() {
+  useDeviceLevels();
   const tick = useSecondTick();
   const [page, setPage] = useState(1);
   const { data, isPending, isError, error, refetch } = useResourcePage(buildings, {

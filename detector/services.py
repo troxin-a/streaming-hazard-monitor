@@ -1,11 +1,14 @@
+import asyncio
 import logging
 from uuid import UUID
 
-from aiokafka import ConsumerRecord
+from aiokafka import AIOKafkaConsumer, ConsumerRecord
 from pydantic import ValidationError
+from sqlalchemy.exc import SQLAlchemyError
 
 from detector.devices_state import DeviceState, LEVEL_RANKS
 from detector.sessions import DetectorSession
+from shared.config.session import async_session_maker
 from shared.config.settings import config
 from shared.device.enums import AlertLevel
 from shared.reading.schemes import ReadingMessageScheme
@@ -44,12 +47,12 @@ async def handle_readings(
         try:
             reading = ReadingMessageScheme.model_validate_json(message.value)
         except ValidationError:
-            logger.exception('Invalid reading message: %r', message)
+            logger.exception(f'Invalid reading message: {message}')
             continue
 
         state = states.get(reading.device_uuid)
         if state is None:
-            logger.warning('No thresholds for device %s', reading.device_uuid)
+            logger.warning(f'No thresholds for device {reading.device_uuid}')
             continue
 
         state.partition = message.partition
@@ -61,4 +64,30 @@ async def handle_readings(
         await session.change_level(readings)
 
     for reading, level in readings:
-        logger.info('Device %s: value %s, level %s', reading.device_uuid, reading.value, level)
+        logger.info(f'Device {reading.device_uuid}: value {reading.value}, level {level}')
+
+
+async def reload_states(states: dict[UUID, DeviceState], kept: set[int]) -> None:
+    """Replace the states with the ones from the database keeping the levels and series of the kept partitions."""
+    try:
+        async with async_session_maker() as session:
+            new_states = await DetectorSession(session).get_states()
+    except (SQLAlchemyError, OSError):
+        logger.warning('States are not reloaded: the database is unavailable', exc_info=True)
+        return
+    for device_uuid, new_state in new_states.items():
+        old_state = states.get(device_uuid)
+        if old_state is not None and old_state.partition in kept:
+            new_state.level = old_state.level
+            new_state.series_count = old_state.series_count
+            new_state.partition = old_state.partition
+    states.clear()
+    states.update(new_states)
+
+
+async def refresh_thresholds(states: dict[UUID, DeviceState], consumer: AIOKafkaConsumer) -> None:
+    """Reload the thresholds of the devices from the database at the configured interval."""
+    while True:
+        await asyncio.sleep(config.detector.DETECTOR_THRESHOLDS_REFRESH_SECONDS)
+        kept = {tp.partition for tp in consumer.assignment()}
+        await reload_states(states, kept)

@@ -81,14 +81,14 @@ class DetectorSession(BaseSession):
             await self.session.execute(update_stmt)
 
             data = [
-                (reading.device_uuid, reading.value, reading.received_at, level, uuid4())
+                (reading.device_uuid, reading.received_at, level, uuid4())
                 for reading, level in readings
                 if level is not None
             ]
             if not data:
                 return
             started = Values(
-                AlertDB.device_uuid, AlertDB.value, AlertDB.started_at, AlertDB.level, AlertDB.uuid,
+                AlertDB.device_uuid, AlertDB.started_at, AlertDB.level, AlertDB.uuid,
                 name='started'
             ).data(data)
             to_create = [i[0] for i in data]
@@ -96,17 +96,13 @@ class DetectorSession(BaseSession):
                 select(
                     started.c.uuid,
                     started.c.level,
-                    started.c.value,
                     started.c.started_at,
                     started.c.device_uuid,
                     DeviceDB.building_uuid,
                 )
                 .join(started, DeviceDB.uuid == started.c.device_uuid)
             )
-            columns = [
-                AlertDB.uuid, AlertDB.level, AlertDB.value,
-                AlertDB.started_at, AlertDB.device_uuid, AlertDB.building_uuid,
-            ]
+            columns = [AlertDB.uuid, AlertDB.level, AlertDB.started_at, AlertDB.device_uuid, AlertDB.building_uuid]
             stmt = insert(AlertDB).from_select(columns, query).returning(AlertDB.device_uuid)
             result = set(await self.session.scalars(stmt))
 

@@ -1,5 +1,4 @@
 from datetime import datetime, UTC
-from decimal import Decimal
 from typing import Sequence
 from uuid import UUID
 
@@ -11,7 +10,6 @@ from shared import AlertDB
 from shared.device.enums import AlertLevel
 
 ALERT_LEVEL = AlertLevel.LEVEL_2
-ALERT_VALUE = Decimal('60.5')
 ALERT_STARTED_AT = datetime(2026, 10, 10, 12, 0, tzinfo=UTC)
 ALERT_ENDED_AT = datetime(2026, 10, 10, 12, 5, tzinfo=UTC)
 
@@ -27,7 +25,6 @@ async def create_alert(
         device_uuid=device_uuid,
         building_uuid=building_uuid,
         level=ALERT_LEVEL,
-        value=ALERT_VALUE,
         started_at=ALERT_STARTED_AT,
         ended_at=ended_at,
     )
@@ -38,10 +35,10 @@ async def create_alert(
 
 async def get_alerts(
         override_get_async_session: AsyncSession,
-) -> Sequence[Row[tuple[UUID, AlertLevel, Decimal, datetime, datetime | None]]]:
+) -> Sequence[Row[tuple[UUID, AlertLevel, datetime, datetime | None]]]:
     """Get saved alerts in the order they started."""
     async with override_get_async_session.begin():
-        query = select(AlertDB.building_uuid, AlertDB.level, AlertDB.value, AlertDB.started_at, AlertDB.ended_at)
+        query = select(AlertDB.building_uuid, AlertDB.level, AlertDB.started_at, AlertDB.ended_at)
         return (await override_get_async_session.execute(query.order_by(AlertDB.started_at))).all()
 
 

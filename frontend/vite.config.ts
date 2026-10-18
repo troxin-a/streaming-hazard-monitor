@@ -17,7 +17,8 @@ export default defineConfig({
     host: true,
     port: 5173,
     proxy: {
-      '/api': apiProxyTarget,
+      // ws: сокет уровней датчиков идёт через тот же прокси.
+      '/api': { target: apiProxyTarget, ws: true },
     },
   },
 });

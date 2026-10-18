@@ -15,8 +15,6 @@ import { DeviceTile } from './DeviceTile';
 
 /** Карточек датчиков на странице здания. */
 const PAGE_SIZE = 12;
-/** Как часто перечитывать уровни датчиков, мс. */
-const REFRESH_INTERVAL = 5000;
 
 interface BuildingDevicesProps {
   building: Building;
@@ -31,7 +29,6 @@ export function BuildingDevices({ building, tick }: BuildingDevicesProps) {
     queryKey: [devices.key, 'monitor', building.uuid, page],
     queryFn: () => listBuildingDevices(building.uuid, page, PAGE_SIZE),
     placeholderData: keepPreviousData,
-    refetchInterval: REFRESH_INTERVAL,
   });
 
   return (

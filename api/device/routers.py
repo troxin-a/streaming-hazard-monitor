@@ -17,7 +17,8 @@ from shared.config.session import get_async_session
 from shared.device.enums import AlertLevel
 from shared.device.models import DeviceDB, DeviceThresholdDB
 from shared.device.schemes import (
-    DeviceAPIKeyScheme, DeviceCreateScheme, DeviceScheme, DeviceUpdateScheme, ThresholdScheme, ThresholdsSetScheme,
+    DeviceAPIKeyScheme, DeviceCreateScheme, DeviceListScheme, DeviceScheme, DeviceUpdateScheme, ThresholdScheme,
+    ThresholdsSetScheme,
 )
 from shared.user.models import UserDB
 
@@ -26,17 +27,18 @@ device_router = FastAPIRouter(dependencies=[Depends(JWTBearer())])
 
 @device_router.get(
     device_url.devices_list,
-    response_model=Page[DeviceScheme],
-    responses=responses(Page[DeviceScheme]),
+    response_model=Page[DeviceListScheme],
+    responses=responses(Page[DeviceListScheme]),
     description='Devices list',
 )
 async def devices_list(
         search: str | None = None,
+        building_uuid: UUID | None = None,
         session: AsyncSession = Depends(get_async_session),
         user: UserDB = Depends(JWTBearer().current_user),
 ) -> Page[DeviceDB]:
     """Devices list."""
-    return await DeviceSession(session).get_devices(user, search)
+    return await DeviceSession(session).get_devices(user, search, building_uuid)
 
 
 @device_router.post(

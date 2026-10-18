@@ -19,6 +19,11 @@ class DeviceScheme(BaseScheme):
     building: BuildingScheme
 
 
+class DeviceListScheme(DeviceScheme):
+    """Device in the list scheme."""
+    level: AlertLevel | None
+
+
 class DeviceAPIKeyScheme(BaseScheme):
     """Device api key scheme."""
     key: str

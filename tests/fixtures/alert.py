@@ -1,4 +1,4 @@
-from datetime import datetime, UTC
+from datetime import datetime, timedelta, UTC
 from typing import Sequence
 from uuid import UUID
 
@@ -19,13 +19,15 @@ async def create_alert(
         device_uuid: UUID,
         building_uuid: UUID,
         ended_at: datetime | None = None,
+        level: AlertLevel = ALERT_LEVEL,
+        started_at: datetime = ALERT_STARTED_AT,
 ) -> AlertDB:
     """Create alert."""
     alert = AlertDB(
         device_uuid=device_uuid,
         building_uuid=building_uuid,
-        level=ALERT_LEVEL,
-        started_at=ALERT_STARTED_AT,
+        level=level,
+        started_at=started_at,
         ended_at=ended_at,
     )
     override_get_async_session.add(alert)
@@ -59,3 +61,22 @@ async def alert(override_get_async_session, device, building) -> AlertDB:
 async def ended_alert(override_get_async_session, device, building) -> AlertDB:
     """Ended alert of the device fixture."""
     return await create_alert(override_get_async_session, device.uuid, building.uuid, ALERT_ENDED_AT)
+
+
+@pytest.fixture(scope='function')
+async def neighbour_alert(override_get_async_session, neighbour_device, second_building) -> AlertDB:
+    """Alert in progress of the highest level in another building of the same company."""
+    return await create_alert(
+        override_get_async_session, neighbour_device.uuid, second_building.uuid, level=AlertLevel.LEVEL_4,
+    )
+
+
+@pytest.fixture(scope='function')
+async def foreign_alert(override_get_async_session, foreign_device, other_building) -> AlertDB:
+    """Alert in progress of another company of the same level as the alert fixture that started later."""
+    return await create_alert(
+        override_get_async_session,
+        foreign_device.uuid,
+        other_building.uuid,
+        started_at=ALERT_STARTED_AT + timedelta(minutes=1),
+    )

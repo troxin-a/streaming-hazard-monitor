@@ -1,5 +1,5 @@
-from typing import AsyncIterator
-from uuid import UUID
+from typing import AsyncIterator, Iterator
+from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -97,6 +97,24 @@ async def device_with_api_key(override_get_async_session, building) -> DeviceDB:
 async def device_keys(override_get_async_session, device, device_with_api_key) -> AsyncIterator[dict[str, UUID]]:
     """Device uuids by api key hashes the receiver loads from the device fixtures."""
     devices = await TelemetrySession(override_get_async_session).get_devices()
+    receiver_app.dependency_overrides[get_devices] = lambda: devices
+    yield devices
+    del receiver_app.dependency_overrides[get_devices]
+
+
+@pytest.fixture(scope='function')
+def empty_device_keys() -> Iterator[dict[str, UUID]]:
+    """Device uuids by api key hashes the receiver has loaded before any key was issued."""
+    devices: dict[str, UUID] = {}
+    receiver_app.dependency_overrides[get_devices] = lambda: devices
+    yield devices
+    del receiver_app.dependency_overrides[get_devices]
+
+
+@pytest.fixture(scope='function')
+def stale_device_keys() -> Iterator[dict[str, UUID]]:
+    """Device uuids by api key hashes the receiver holds for the key API_KEY of a device the database has no more."""
+    devices = {hash_api_key(API_KEY): uuid4()}
     receiver_app.dependency_overrides[get_devices] = lambda: devices
     yield devices
     del receiver_app.dependency_overrides[get_devices]

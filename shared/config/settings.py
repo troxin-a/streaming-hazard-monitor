@@ -77,6 +77,7 @@ class ReceiverSettings(EnvSettings):
 class DetectorSettings(EnvSettings):
     DETECTOR_RISE_COUNT: int = 5
     DETECTOR_FALL_COUNT: int = 15
+    DETECTOR_THRESHOLDS_REFRESH_SECONDS: int = 60
 
 
 class Config(EnvSettings):

@@ -108,4 +108,4 @@ class DetectorSession(BaseSession):
 
             for uuid in to_create:
                 if uuid not in result:
-                    logger.warning('Alert is not saved: device %s is not found', uuid)
+                    logger.warning(f'Alert is not saved: device {uuid} is not found')

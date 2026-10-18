@@ -145,6 +145,12 @@ class TestCaseReadingHandle:
         assert handle_readings([build_record(value)], states) == []
         assert states == build_states()
 
+    def test_reading_handle_without_value(self):
+        """Test message without a value changes nothing."""
+        states = build_states()
+        assert handle_readings([build_record(None)], states) == []
+        assert states == build_states()
+
     def test_reading_handle_several_devices(self):
         """Test level changes of the devices of one batch are returned together in their order."""
         states = build_states({SECOND_DEVICE_UUID: AlertLevel.LEVEL_2})

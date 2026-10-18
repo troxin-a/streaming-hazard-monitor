@@ -20,8 +20,8 @@ def build_reading(device_uuid: UUID, value: Decimal = READING_VALUE) -> ReadingM
     return ReadingMessageScheme(device_uuid=device_uuid, value=value, received_at=READING_RECEIVED_AT)
 
 
-def build_record(value: bytes) -> ConsumerRecord:
-    """Build the record of the readings topic with the value."""
+def build_record(value: bytes | None) -> ConsumerRecord:
+    """Build the record of the readings topic with the value or without a value."""
     return ConsumerRecord(
         topic=config.kafka.KAFKA_TOPIC_SENSOR_READINGS,
         partition=0,
@@ -32,7 +32,7 @@ def build_record(value: bytes) -> ConsumerRecord:
         value=value,
         checksum=None,
         serialized_key_size=-1,
-        serialized_value_size=len(value),
+        serialized_value_size=-1 if value is None else len(value),
         headers=[],
     )
 

@@ -1,3 +1,4 @@
+from datetime import datetime
 from decimal import Decimal
 from typing import Self
 from uuid import UUID
@@ -22,6 +23,13 @@ class DeviceScheme(BaseScheme):
 class DeviceListScheme(DeviceScheme):
     """Device in the list scheme."""
     level: AlertLevel | None
+
+
+class DeviceLevelScheme(BaseScheme):
+    """Level of a device sent over the websocket scheme."""
+    device_uuid: UUID
+    level: AlertLevel | None
+    changed_at: datetime
 
 
 class DeviceAPIKeyScheme(BaseScheme):

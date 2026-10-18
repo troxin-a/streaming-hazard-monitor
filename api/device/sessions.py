@@ -119,6 +119,16 @@ class DeviceSession(BaseSession):
             if previous is None:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Device has no api key')
 
+    async def get_device_places(self, uuids: set[UUID]) -> dict[UUID, Row[tuple[UUID, UUID, UUID]]]:
+        """Get the building and the company of every existing device of the uuids."""
+        async with self.session.begin():
+            query = (
+                select(DeviceDB.uuid, DeviceDB.building_uuid, BuildingDB.company_uuid)
+                .join(BuildingDB, BuildingDB.uuid == DeviceDB.building_uuid)
+                .where(DeviceDB.uuid.in_(uuids))
+            )
+            return {row.uuid: row for row in await self.session.execute(query)}
+
     async def _previous_key_hash(self, query: Update) -> str | None:
         """Return the api key hash stored before the update or raise not found."""
         row = (await self.execute(query)).one_or_none()

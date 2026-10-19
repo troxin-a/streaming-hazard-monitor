@@ -15,3 +15,9 @@ def telemetry_producer() -> Iterator[AsyncMock]:
     app.dependency_overrides[get_producer] = lambda: producer
     yield producer
     del app.dependency_overrides[get_producer]
+
+
+@pytest.fixture(scope='function')
+def alert_producer() -> AsyncMock:
+    """Producer of the threshold detector replaced with a mock that records sent messages."""
+    return AsyncMock(spec=AIOKafkaProducer)

@@ -6,11 +6,11 @@ from fastapi import FastAPI
 from fastapi_pagination import add_pagination
 from starlette.middleware.cors import CORSMiddleware
 
-from receiver.producer import create_producer
 from receiver.routers import telemetry_router
 from receiver.services import refresh_devices
 from receiver.sessions import TelemetrySession
 from receiver.urls import telemetry_url
+from shared.base.kafka import create_producer
 from shared.config.session import async_session_maker
 from shared.config.settings import config
 
@@ -32,7 +32,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[dict[str, Any]]:
     """Keep the producer and the refresh of the devices running while the application works."""
     async with async_session_maker() as session:
         devices = await TelemetrySession(session).get_devices()
-    telemetry_producer = create_producer()
+    telemetry_producer = create_producer(config.kafka.KAFKA_REQUEST_TIMEOUT_MS)
     await telemetry_producer.start()
     refresh_task = asyncio.create_task(refresh_devices(devices))
 

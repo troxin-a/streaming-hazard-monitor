@@ -20,6 +20,7 @@ class DeviceURL(BaseURL):
         self.device_thresholds_create: str = '/{uuid}/thresholds/'
         self.device_thresholds_update: str = '/{uuid}/thresholds/'
         self.device_thresholds_delete: str = '/{uuid}/thresholds/'
+        self.device_monitor: str = '/monitor/'
 
 
 device_url = DeviceURL(Path(__file__).parent.parent.name)

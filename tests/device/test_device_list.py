@@ -4,6 +4,7 @@ from starlette import status
 from shared.device.enums import DeviceType
 from tests.base.base_test import BaseTestCase
 from tests.conftest import get_url_size
+from tests.fixtures.alert import ALERT_LEVEL
 from tests.fixtures.building import BUILDING_DATA
 from tests.fixtures.device import DEVICE_COUNT
 
@@ -28,6 +29,13 @@ class TestCaseDeviceList(BaseTestCase):
         response = await self.make_get(url, user.username)
         assert response['total'] == DEVICE_COUNT
         assert len(response['items']) == size
+
+    async def test_device_list_order(self, user, device, many_devices):
+        """Test devices created at the same moment follow the newer ones in the order of their uuids."""
+        url = get_url_size(self.url, DEVICE_COUNT, 1)
+        response = await self.make_get(url, user.username)
+        expected = sorted(str(item.uuid) for item in many_devices) + [str(device.uuid)]
+        assert [item['uuid'] for item in response['items']] == expected
 
     async def test_device_list_another_building(self, user, device, neighbour_device):
         """Test an employee does not see the devices of another building of their company."""
@@ -56,6 +64,34 @@ class TestCaseDeviceList(BaseTestCase):
         response = await self.make_get(self.url, user.username)
         has_api_key = {item['uuid']: item['has_api_key'] for item in response['items']}
         assert has_api_key == {f'{device.uuid}': False, f'{device_with_api_key.uuid}': True}
+
+    async def test_device_list_level(self, user, device, device_with_api_key, alert):
+        """Test device list reports the level of the alert in progress of every device."""
+        response = await self.make_get(self.url, user.username)
+        levels = {item['uuid']: item['level'] for item in response['items']}
+        assert levels == {f'{device.uuid}': ALERT_LEVEL.value, f'{device_with_api_key.uuid}': None}
+
+    async def test_device_list_ended_alert(self, user, device, ended_alert):
+        """Test device with only an ended alert has no level."""
+        response = await self.make_get(self.url, user.username)
+        assert response['items'][0]['level'] is None
+
+    async def test_device_list_building(self, director, device, neighbour_device, second_building):
+        """Test device list is narrowed by the building."""
+        url = f'{self.url}?building_uuid={second_building.uuid}'
+        response = await self.make_get(url, director.username)
+        assert [item['uuid'] for item in response['items']] == [f'{neighbour_device.uuid}']
+
+    async def test_device_list_building_another_company(self, director, foreign_device, other_building):
+        """Test device list narrowed by a building of another company is empty."""
+        url = f'{self.url}?building_uuid={other_building.uuid}'
+        response = await self.make_get(url, director.username)
+        assert response['total'] == 0
+
+    async def test_device_list_building_422(self, user):
+        """Test device list narrowed by a building that is not a uuid."""
+        url = f'{self.url}?building_uuid=abc'
+        await self.make_get(url, user.username, status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
 
     @pytest.mark.parametrize('search', ['ДЫМ', 'sn-0002'])
     async def test_device_list_search(self, director, device, neighbour_device, search):

@@ -1,3 +1,4 @@
+import uuid
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Enum, false, UUID
@@ -30,3 +31,11 @@ class UserDB(BaseDBModel):
 
     company: Mapped['CompanyDB | None'] = relationship(back_populates='users')
     building: Mapped['BuildingDB | None'] = relationship(back_populates='users')
+
+    def can_see_building(self, building_uuid: uuid.UUID, company_uuid: uuid.UUID) -> bool:
+        """Check the user is allowed to see the devices of the building of the company."""
+        if self.is_superuser:
+            return True
+        if self.role == UserRole.DIRECTOR:
+            return self.company_uuid == company_uuid
+        return self.building_uuid == building_uuid

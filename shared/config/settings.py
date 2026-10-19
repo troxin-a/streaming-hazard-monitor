@@ -66,8 +66,9 @@ class DatabaseSettings(EnvSettings):
 class KafkaSettings(EnvSettings):
     KAFKA_HOST: str = 'kafka:9092'
     KAFKA_TOPIC_SENSOR_READINGS: str = 'sensor-readings'
-    KAFKA_TOPIC_ALERTS: str = 'alerts'
+    KAFKA_TOPIC_DEVICE_LEVELS: str = 'device-levels'
     KAFKA_GROUP_THRESHOLD_DETECTOR: str = 'threshold-detector'
+    KAFKA_REQUEST_TIMEOUT_MS: int = 800
 
 
 class ReceiverSettings(EnvSettings):

@@ -9,10 +9,11 @@ from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import (
     and_, case, ColumnElement, delete, insert, literal_column, or_, Row, select, Select, true, update, Update,
 )
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import contains_eager, joinedload
 from sqlalchemy.sql.functions import coalesce
 from starlette import status
 
+from shared.alert.models import AlertDB
 from shared.base.sessions import BaseSession
 from shared.building.models import BuildingDB
 from shared.device.enums import AlertLevel
@@ -28,14 +29,29 @@ PREVIOUS_KEY_HASH = literal_column('old.key_hash').label('previous_key_hash')
 class DeviceSession(BaseSession):
     """Device session."""
 
-    async def get_devices(self, user: UserDB, search: str | None = None) -> Page[DeviceDB]:
-        """Get devices visible to the user, optionally narrowed by a part of the name or the serial number."""
+    async def get_devices(
+            self,
+            user: UserDB,
+            search: str | None = None,
+            building_uuid: UUID | None = None,
+    ) -> Page[DeviceDB]:
+        """Get devices visible to the user with their levels, optionally narrowed by the search and the building."""
         async with self.session.begin():
-            query = select(DeviceDB).where(self._visible(user)).order_by(DeviceDB.created_at.desc())
+            query = (
+                select(DeviceDB)
+                .outerjoin(AlertDB, and_(AlertDB.device_uuid == DeviceDB.uuid, AlertDB.ended_at.is_(None)))
+                .where(self._visible(user))
+                .order_by(DeviceDB.created_at.desc(), DeviceDB.uuid)
+            )
             if search:
                 pattern = f'%{search}%'
                 query = query.where(or_(DeviceDB.name.ilike(pattern), DeviceDB.serial_number.ilike(pattern)))
-            query = query.options(joinedload(DeviceDB.building).joinedload(BuildingDB.company))
+            if building_uuid:
+                query = query.where(DeviceDB.building_uuid == building_uuid)
+            query = query.options(
+                contains_eager(DeviceDB.alert_in_progress),
+                joinedload(DeviceDB.building).joinedload(BuildingDB.company),
+            )
             return await apaginate(self.session, query)
 
     async def create_device(self, data: DeviceCreateScheme, user: UserDB) -> DeviceDB:
@@ -102,6 +118,22 @@ class DeviceSession(BaseSession):
             previous = await self._previous_key_hash(query)
             if previous is None:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Device has no api key')
+
+    async def get_device_places(self, uuids: set[UUID]) -> dict[UUID, Row[tuple[UUID, UUID, UUID]]]:
+        """Get the building and the company of every existing device of the uuids."""
+        async with self.session.begin():
+            query = (
+                select(DeviceDB.uuid, DeviceDB.building_uuid, BuildingDB.company_uuid)
+                .join(BuildingDB, BuildingDB.uuid == DeviceDB.building_uuid)
+                .where(DeviceDB.uuid.in_(uuids))
+            )
+            return {row.uuid: row for row in await self.session.execute(query)}
+
+    async def get_visible_device_uuids(self, user: UserDB, uuids: set[UUID]) -> set[UUID]:
+        """Get the uuids of the existing devices among the uuids the user is allowed to see."""
+        async with self.session.begin():
+            query = select(DeviceDB.uuid).where(DeviceDB.uuid.in_(uuids), self._visible(user))
+            return set(await self.session.scalars(query))
 
     async def _previous_key_hash(self, query: Update) -> str | None:
         """Return the api key hash stored before the update or raise not found."""

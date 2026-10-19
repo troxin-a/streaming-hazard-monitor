@@ -9,6 +9,7 @@ from shared.base.utils import enum_values
 from shared.device.enums import AlertLevel, DeviceType
 
 if TYPE_CHECKING:
+    from shared.alert.models import AlertDB
     from shared.building.models import BuildingDB
 
 
@@ -23,10 +24,20 @@ class DeviceDB(BaseDBModel):
     key_hash: Mapped[str | None] = mc(index=True, unique=True, nullable=True)
 
     building: Mapped['BuildingDB'] = relationship(back_populates='devices', lazy='selectin')
+    alert_in_progress: Mapped['AlertDB | None'] = relationship(
+        primaryjoin='and_(AlertDB.device_uuid == DeviceDB.uuid, AlertDB.ended_at.is_(None))',
+        viewonly=True,
+        lazy='raise',
+    )
 
     @property
     def has_api_key(self) -> bool:
         return self.key_hash is not None
+
+    @property
+    def level(self) -> AlertLevel | None:
+        """Level of the alert in progress of the device or none when the device is normal."""
+        return self.alert_in_progress.level if self.alert_in_progress else None
 
 
 class ThresholdValueMixin:

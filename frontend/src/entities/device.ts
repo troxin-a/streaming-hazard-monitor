@@ -1,5 +1,5 @@
 import { request } from '@/shared/api/client';
-import { createResource } from '@/shared/api/resource';
+import { createResource, type Page } from '@/shared/api/resource';
 
 import type { Building } from './building';
 
@@ -38,6 +38,17 @@ export type AlertLevel = keyof typeof ALERT_LEVEL_LABELS;
 /** Уровни по возрастанию опасности. */
 export const ALERT_LEVELS = Object.keys(ALERT_LEVEL_LABELS) as AlertLevel[];
 
+export const NORMAL_LABEL = 'Норма';
+
+/** Цвет нормы и уровней: норма зелёная, уровни от жёлтого к красному с шагом тона 20°. */
+export const NORMAL_COLOR = '#2c962c';
+export const ALERT_LEVEL_COLORS: Record<AlertLevel, string> = {
+  level_1: '#dede12',
+  level_2: '#e69e0f',
+  level_3: '#e25812',
+  level_4: '#d02525',
+};
+
 export interface Device {
   uuid: string;
   name: string;
@@ -45,6 +56,8 @@ export interface Device {
   type: DeviceType;
   has_api_key: boolean;
   building: Building;
+  /** Уровень открытого алерта датчика; null — норма. */
+  level: AlertLevel | null;
 }
 
 export interface DeviceInput {
@@ -55,6 +68,20 @@ export interface DeviceInput {
 }
 
 export const devices = createResource<Device, DeviceInput>('device');
+
+/** Страница датчиков здания. */
+export function listBuildingDevices(
+  buildingUuid: string,
+  page: number,
+  size: number,
+): Promise<Page<Device>> {
+  const query = new URLSearchParams({
+    building_uuid: buildingUuid,
+    page: String(page),
+    size: String(size),
+  });
+  return request(`/device/?${query}`);
+}
 
 /** Выпускает API-ключ датчика; ключ возвращается один раз. */
 export async function issueApiKey(uuid: string): Promise<string> {

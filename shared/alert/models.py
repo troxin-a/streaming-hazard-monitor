@@ -1,7 +1,6 @@
 from datetime import datetime
-from decimal import Decimal
 
-from sqlalchemy import DateTime, Enum, Numeric, UUID
+from sqlalchemy import DateTime, Enum, Index, text, UUID
 from sqlalchemy.orm import Mapped
 
 from shared.base.models import BaseDBModel, FK, mc
@@ -12,10 +11,14 @@ from shared.device.enums import AlertLevel
 class AlertDB(BaseDBModel):
     """Alert database model."""
     __tablename__ = 'alerts'
+    __table_args__ = (
+        Index(
+            'uq_alerts_device_uuid_in_progress', 'device_uuid', unique=True, postgresql_where=text('ended_at IS NULL'),
+        ),
+    )
 
     device_uuid: Mapped[UUID] = mc(UUID(), FK('devices.uuid', ondelete='CASCADE'), index=True)
     building_uuid: Mapped[UUID] = mc(UUID(), FK('buildings.uuid', ondelete='CASCADE'), index=True)
     level: Mapped[AlertLevel] = mc(Enum(AlertLevel, name='alert_level', values_callable=enum_values))
-    value: Mapped[Decimal] = mc(Numeric(10, 3))
     started_at: Mapped[datetime] = mc(DateTime(timezone=True))
     ended_at: Mapped[datetime | None] = mc(DateTime(timezone=True), nullable=True)

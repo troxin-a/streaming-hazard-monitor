@@ -2,12 +2,13 @@ import asyncio
 import logging
 from uuid import UUID
 
-from aiokafka import AIOKafkaConsumer, ConsumerRecord
-from pydantic import ValidationError
+from aiokafka import AIOKafkaConsumer, AIOKafkaProducer, ConsumerRecord
 from sqlalchemy.exc import SQLAlchemyError
 
 from detector.devices_state import DeviceState, LEVEL_RANKS
+from detector.producer import send_level_changes
 from detector.sessions import DetectorSession
+from shared.base.kafka import read_message
 from shared.config.session import async_session_maker
 from shared.config.settings import config
 from shared.device.enums import AlertLevel
@@ -36,18 +37,15 @@ def count_reading(state: DeviceState, level: AlertLevel | None) -> bool:
     return True
 
 
-async def handle_readings(
-        batch: list[ConsumerRecord],
+def handle_readings(
+        batch: list[ConsumerRecord[bytes, bytes]],
         states: dict[UUID, DeviceState],
-        session: DetectorSession,
-) -> None:
-    """Change the alert of the device when a series of readings of other levels changes its level."""
-    readings = []
+) -> list[tuple[ReadingMessageScheme, AlertLevel | None]]:
+    """Count the readings of the batch into the series of their devices and return the level changes."""
+    readings: list[tuple[ReadingMessageScheme, AlertLevel | None]] = []
     for message in batch:
-        try:
-            reading = ReadingMessageScheme.model_validate_json(message.value)
-        except ValidationError:
-            logger.exception(f'Invalid reading message: {message}')
+        reading = read_message(message, ReadingMessageScheme)
+        if reading is None:
             continue
 
         state = states.get(reading.device_uuid)
@@ -59,11 +57,20 @@ async def handle_readings(
         level = max((level for level, ts in state.thresholds.items() if reading.value > ts), default=None)
         if count_reading(state, level):
             readings.append((reading, state.level))
+    return readings
 
-    if readings:
-        await session.change_level(readings)
 
-    for reading, level in readings:
+async def publish_and_save_level_changes(
+        changes: list[tuple[ReadingMessageScheme, AlertLevel | None]],
+        producer: AIOKafkaProducer,
+        session: DetectorSession,
+) -> None:
+    """Send the level changes to the device levels topic and then save them as alerts."""
+    if not changes:
+        return
+    await send_level_changes(producer, changes)
+    await session.change_level(changes)
+    for reading, level in changes:
         logger.info(f'Device {reading.device_uuid}: value {reading.value}, level {level}')
 
 
@@ -72,8 +79,8 @@ async def reload_states(states: dict[UUID, DeviceState], kept: set[int]) -> None
     try:
         async with async_session_maker() as session:
             new_states = await DetectorSession(session).get_states()
-    except (SQLAlchemyError, OSError):
-        logger.warning('States are not reloaded: the database is unavailable', exc_info=True)
+    except (SQLAlchemyError, OSError) as error:
+        logger.warning(f'States are not reloaded: the database is unavailable: {error}')
         return
     for device_uuid, new_state in new_states.items():
         old_state = states.get(device_uuid)

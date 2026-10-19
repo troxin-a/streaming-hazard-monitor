@@ -1,3 +1,4 @@
+import asyncio
 from decimal import Decimal
 from typing import Sequence
 from uuid import UUID
@@ -9,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from api.auth.auth import current_director, JWTBearer, websocket_user
-from api.device.services import handle_message
+from api.device.services import handle_message, ping_idle_websocket
 from api.device.websocket import device_websockets
 from api.device.sessions import DeviceSession, ThresholdSession
 from api.device.urls import device_url
@@ -240,6 +241,7 @@ async def device_monitor(
         return
     await websocket.accept()
     device_websockets.add(websocket, user)
+    ping_task = asyncio.create_task(ping_idle_websocket(websocket))
     try:
         while True:
             text = await websocket.receive_text()
@@ -247,4 +249,5 @@ async def device_monitor(
     except WebSocketDisconnect:
         return
     finally:
+        ping_task.cancel()
         device_websockets.remove(websocket)

@@ -40,6 +40,11 @@ class DeviceReadingsScheme(BaseScheme):
     items: list[ReadingMessageScheme]
 
 
+class DevicePingScheme(BaseScheme):
+    """Ping of an idle websocket scheme."""
+    type: Literal['ping'] = 'ping'
+
+
 class DeviceSubscribeScheme(BaseScheme):
     """Devices the client watches sent over the websocket scheme."""
     type: Literal['subscribe']

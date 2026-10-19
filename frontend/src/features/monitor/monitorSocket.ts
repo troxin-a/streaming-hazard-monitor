@@ -5,6 +5,9 @@ import { tokenStorage } from '@/shared/api/tokenStorage';
 /** Пауза перед повторным подключением после обрыва, мс. */
 const RECONNECT_DELAY = 3000;
 
+/** Сколько ждать любого сообщения сервера, прежде чем считать соединение оборванным, мс; сервер шлёт ping каждые 15 секунд тишины. */
+const SILENCE_TIMEOUT = 25000;
+
 /** Сообщение сервера; остальные поля зависят от типа. */
 export interface SocketMessage {
   type: string;
@@ -22,6 +25,7 @@ function socketUrl(token: string): string {
 export class MonitorSocket {
   private socket: WebSocket | null = null;
   private reconnectTimer: number | undefined;
+  private silenceTimer: number | undefined;
   private stopped = true;
   private readonly messageHandlers = new Map<string, Set<MessageHandler>>();
   private readonly connectionHandlers = new Set<ConnectionHandler>();
@@ -34,6 +38,7 @@ export class MonitorSocket {
   stop(): void {
     this.stopped = true;
     window.clearTimeout(this.reconnectTimer);
+    window.clearTimeout(this.silenceTimer);
     this.socket?.close();
     this.socket = null;
   }
@@ -67,20 +72,36 @@ export class MonitorSocket {
     const socket = new WebSocket(socketUrl(token));
     this.socket = socket;
     socket.onopen = () => {
+      this.watchSilence(socket);
       this.connectionHandlers.forEach((handler) => handler(true));
     };
     socket.onmessage = (event: MessageEvent<string>) => {
+      this.watchSilence(socket);
       const message = JSON.parse(event.data) as SocketMessage;
       this.messageHandlers.get(message.type)?.forEach((handler) => handler(message));
     };
-    socket.onclose = () => {
-      // Закрытый при остановке или уже заменённый сокет не переподключается.
-      if (this.stopped || socket !== this.socket) {
-        return;
-      }
-      this.connectionHandlers.forEach((handler) => handler(false));
-      this.reconnectTimer = window.setTimeout(() => this.connect(), RECONNECT_DELAY);
-    };
+    socket.onclose = () => this.handleClose(socket);
+  }
+
+  /** Перезапускает ожидание следующего сообщения; не дождавшись, закрывает соединение как оборванное. */
+  private watchSilence(socket: WebSocket): void {
+    window.clearTimeout(this.silenceTimer);
+    this.silenceTimer = window.setTimeout(() => {
+      // На мёртвом соединении браузер может долго не вызывать onclose, поэтому обрыв обрабатывается сразу.
+      socket.onclose = null;
+      socket.close();
+      this.handleClose(socket);
+    }, SILENCE_TIMEOUT);
+  }
+
+  private handleClose(socket: WebSocket): void {
+    // Закрытый при остановке или уже заменённый сокет не переподключается.
+    if (this.stopped || socket !== this.socket) {
+      return;
+    }
+    window.clearTimeout(this.silenceTimer);
+    this.connectionHandlers.forEach((handler) => handler(false));
+    this.reconnectTimer = window.setTimeout(() => this.connect(), RECONNECT_DELAY);
   }
 }
 

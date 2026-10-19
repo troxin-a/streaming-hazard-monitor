@@ -1,4 +1,6 @@
+import asyncio
 import logging
+import time
 from uuid import UUID
 
 from pydantic import ValidationError
@@ -10,11 +12,13 @@ from api.device.sessions import DeviceSession
 from api.device.websocket import device_websockets
 from shared.alert.schemes import LevelChangeMessageScheme
 from shared.config.session import async_session_maker
-from shared.device.schemes import DeviceLevelScheme, DeviceReadingsScheme, DeviceSubscribeScheme
+from shared.device.schemes import DeviceLevelScheme, DevicePingScheme, DeviceReadingsScheme, DeviceSubscribeScheme
 from shared.reading.schemes import ReadingMessageScheme
 from shared.user.models import UserDB
 
 logger = logging.getLogger(__name__)
+
+PING_SECONDS = 15
 
 
 async def handle_message(websocket: WebSocket, user: UserDB, text: str, session: AsyncSession) -> None:
@@ -30,6 +34,16 @@ async def handle_message(websocket: WebSocket, user: UserDB, text: str, session:
         return
     device_websockets.subscribe(websocket, devices)
     logger.info(f'Websocket of {user.username} is subscribed to {len(devices)} devices')
+
+
+async def ping_idle_websocket(websocket: WebSocket) -> None:
+    """Send the ping to the websocket every time nothing has been sent to it for the ping interval."""
+    while websocket in device_websockets.sent_at:
+        idle = time.time() - device_websockets.sent_at[websocket]
+        if idle >= PING_SECONDS:
+            await device_websockets.send(websocket, DevicePingScheme().model_dump(mode='json'))
+        else:
+            await asyncio.sleep(PING_SECONDS - idle)
 
 
 async def broadcast_level_changes(changes: list[LevelChangeMessageScheme]) -> None:

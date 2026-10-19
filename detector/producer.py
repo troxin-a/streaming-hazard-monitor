@@ -6,11 +6,6 @@ from shared.device.enums import AlertLevel
 from shared.reading.schemes import ReadingMessageScheme
 
 
-def create_producer() -> AIOKafkaProducer:
-    """Create producer of the threshold detector."""
-    return AIOKafkaProducer(bootstrap_servers=config.kafka.KAFKA_HOST)
-
-
 async def send_level_changes(
         producer: AIOKafkaProducer,
         changes: list[tuple[ReadingMessageScheme, AlertLevel | None]],

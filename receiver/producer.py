@@ -5,14 +5,6 @@ from shared.config.settings import config
 from shared.reading.schemes import ReadingMessageScheme
 
 
-def create_producer() -> AIOKafkaProducer:
-    """Create producer of the telemetry receiver."""
-    return AIOKafkaProducer(
-        bootstrap_servers=config.kafka.KAFKA_HOST,
-        request_timeout_ms=config.kafka.KAFKA_REQUEST_TIMEOUT_MS,
-    )
-
-
 def get_producer(request: Request) -> AIOKafkaProducer:
     """Return producer of the running application."""
     return request.state.telemetry_producer

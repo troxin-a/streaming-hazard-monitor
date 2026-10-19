@@ -25,7 +25,7 @@ from shared.device.schemes import (
 from shared.user.models import UserDB
 
 device_router = FastAPIRouter(dependencies=[Depends(JWTBearer())])
-device_levels_router = FastAPIRouter()
+device_monitor_router = FastAPIRouter()
 
 
 @device_router.get(
@@ -227,13 +227,13 @@ async def device_thresholds_delete(
     await ThresholdSession(session).delete_thresholds(uuid, user)
 
 
-@device_levels_router.websocket(device_url.device_levels)
-async def device_levels(
+@device_monitor_router.websocket(device_url.device_monitor)
+async def device_monitor(
         websocket: WebSocket,
         token: str | None = None,
         session: AsyncSession = Depends(get_async_session),
 ) -> None:
-    """Send the level changes of the devices the user is allowed to see over the websocket."""
+    """Keep the websocket of the monitor: take the subscriptions to the devices, send their levels and readings."""
     user = await websocket_user(token, session)
     if user is None:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)

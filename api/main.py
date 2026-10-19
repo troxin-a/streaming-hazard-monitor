@@ -12,8 +12,8 @@ from api.building.routers import building_router
 from api.building.urls import building_url
 from api.company.routers import company_router
 from api.company.urls import company_url
-from api.device.consumer import consume_level_changes, consume_readings
-from api.device.routers import device_levels_router, device_router
+from api.device.consumer import consume_level_changes_to_websockets, consume_readings_to_websockets
+from api.device.routers import device_monitor_router, device_router
 from api.device.urls import device_url
 from api.user.routers import user_router
 from api.user.urls import user_url
@@ -35,8 +35,8 @@ SWAGGER_UI_SETTINGS = {
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     """Keep reading the level changes and the readings of the devices while the application works."""
-    levels_task = asyncio.create_task(consume_level_changes())
-    readings_task = asyncio.create_task(consume_readings())
+    levels_task = asyncio.create_task(consume_level_changes_to_websockets())
+    readings_task = asyncio.create_task(consume_readings_to_websockets())
     yield
     levels_task.cancel()
     readings_task.cancel()
@@ -55,7 +55,7 @@ app.include_router(user_router, prefix=user_url(), tags=['user'])
 app.include_router(company_router, prefix=company_url(), tags=['company'])
 app.include_router(building_router, prefix=building_url(), tags=['building'])
 app.include_router(device_router, prefix=device_url(), tags=['device'])
-app.include_router(device_levels_router, prefix=device_url(), tags=['device'])
+app.include_router(device_monitor_router, prefix=device_url(), tags=['device'])
 add_pagination(app)
 
 app.add_middleware(

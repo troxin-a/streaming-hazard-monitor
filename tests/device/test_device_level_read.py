@@ -6,7 +6,7 @@ import pytest
 from aiokafka import TopicPartition
 from aiokafka.errors import KafkaConnectionError
 
-from api.device.consumer import consume_level_changes
+from api.device.consumer import consume_level_changes_to_websockets
 from shared.config.settings import config
 from shared.device.enums import AlertLevel
 from tests.fixtures.reading import build_record, DEVICE_UUID, READING_RECEIVED_AT
@@ -39,9 +39,9 @@ class TestCaseDeviceLevelRead:
         consumer = build_consumer([], [b'not json', LEVEL_CHANGE, LEVEL_CHANGE])
         send = AsyncMock()
         with patch('api.device.consumer.create_consumer', return_value=consumer), \
-                patch('api.device.consumer.send_level_changes', send):
+                patch('api.device.consumer.broadcast_level_changes', send):
             with pytest.raises(asyncio.CancelledError):
-                await consume_level_changes()
+                await consume_level_changes_to_websockets()
         [changes] = [call.args[0] for call in send.await_args_list]
         assert [(change.device_uuid, change.level) for change in changes] == [(DEVICE_UUID, AlertLevel.LEVEL_3)] * 2
         consumer.stop.assert_awaited_once()
@@ -55,6 +55,6 @@ class TestCaseDeviceLevelRead:
         with patch('api.device.consumer.create_consumer', side_effect=[unavailable, available]), \
                 patch('api.device.consumer.asyncio.sleep', sleep):
             with pytest.raises(asyncio.CancelledError):
-                await consume_level_changes()
+                await consume_level_changes_to_websockets()
         unavailable.stop.assert_awaited_once()
         available.start.assert_awaited_once()

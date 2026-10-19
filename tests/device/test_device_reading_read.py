@@ -6,7 +6,7 @@ from uuid import UUID
 import pytest
 from aiokafka import ConsumerRecord, TopicPartition
 
-from api.device.consumer import consume_readings, READINGS_SEND_SECONDS
+from api.device.consumer import consume_readings_to_websockets, READINGS_SEND_SECONDS
 from shared.config.settings import config
 from tests.fixtures.reading import build_record, build_reading_record, DEVICE_UUID, SECOND_DEVICE_UUID
 
@@ -45,10 +45,10 @@ class TestCaseDeviceReadingRead:
         sleep, send = AsyncMock(), AsyncMock()
         with patch('api.device.consumer.create_consumer', return_value=consumer), \
                 patch('api.device.consumer.device_websockets', build_websockets(DEVICE_UUID)), \
-                patch('api.device.consumer.send_readings', send), \
+                patch('api.device.consumer.broadcast_readings', send), \
                 patch('api.device.consumer.asyncio.sleep', sleep):
             with pytest.raises(asyncio.CancelledError):
-                await consume_readings()
+                await consume_readings_to_websockets()
         [readings] = [call.args[0] for call in send.await_args_list]
         assert [(reading.device_uuid, reading.value) for reading in readings] == [
             (DEVICE_UUID, Decimal('10.5')),
@@ -66,10 +66,10 @@ class TestCaseDeviceReadingRead:
         send = AsyncMock()
         with patch('api.device.consumer.create_consumer', return_value=consumer), \
                 patch('api.device.consumer.device_websockets', build_websockets(DEVICE_UUID)), \
-                patch('api.device.consumer.send_readings', send), \
+                patch('api.device.consumer.broadcast_readings', send), \
                 patch('api.device.consumer.asyncio.sleep', AsyncMock()):
             with pytest.raises(asyncio.CancelledError):
-                await consume_readings()
+                await consume_readings_to_websockets()
         assert [[reading.value for reading in call.args[0]] for call in send.await_args_list] == [
             [Decimal('10.5')],
             [Decimal('11.5')],
@@ -81,8 +81,8 @@ class TestCaseDeviceReadingRead:
         send = AsyncMock()
         with patch('api.device.consumer.create_consumer', return_value=consumer), \
                 patch('api.device.consumer.device_websockets', build_websockets()), \
-                patch('api.device.consumer.send_readings', send), \
+                patch('api.device.consumer.broadcast_readings', send), \
                 patch('api.device.consumer.asyncio.sleep', AsyncMock()):
             with pytest.raises(asyncio.CancelledError):
-                await consume_readings()
+                await consume_readings_to_websockets()
         send.assert_not_awaited()

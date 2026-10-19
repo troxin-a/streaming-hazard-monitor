@@ -60,7 +60,7 @@ def handle_readings(
     return readings
 
 
-async def save_level_changes(
+async def publish_and_save_level_changes(
         changes: list[tuple[ReadingMessageScheme, AlertLevel | None]],
         producer: AIOKafkaProducer,
         session: DetectorSession,

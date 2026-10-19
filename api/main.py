@@ -12,7 +12,7 @@ from api.building.routers import building_router
 from api.building.urls import building_url
 from api.company.routers import company_router
 from api.company.urls import company_url
-from api.device.consumer import consume_level_changes
+from api.device.consumer import consume_level_changes, consume_readings
 from api.device.routers import device_levels_router, device_router
 from api.device.urls import device_url
 from api.user.routers import user_router
@@ -34,10 +34,12 @@ SWAGGER_UI_SETTINGS = {
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
-    """Keep reading the level changes of the devices while the application works."""
+    """Keep reading the level changes and the readings of the devices while the application works."""
     levels_task = asyncio.create_task(consume_level_changes())
+    readings_task = asyncio.create_task(consume_readings())
     yield
     levels_task.cancel()
+    readings_task.cancel()
 
 
 app = FastAPI(

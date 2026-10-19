@@ -26,5 +26,5 @@ async def refresh_devices(devices: dict[str, UUID]) -> None:
         try:
             async with async_session_maker() as session:
                 await reload_devices(session, devices)
-        except (SQLAlchemyError, OSError):
-            logger.warning('Devices are not reloaded: the database is unavailable', exc_info=True)
+        except (SQLAlchemyError, OSError) as error:
+            logger.warning(f'Devices are not reloaded: the database is unavailable: {error}')

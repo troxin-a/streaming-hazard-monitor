@@ -30,6 +30,13 @@ class TestCaseDeviceList(BaseTestCase):
         assert response['total'] == DEVICE_COUNT
         assert len(response['items']) == size
 
+    async def test_device_list_order(self, user, device, many_devices):
+        """Test devices created at the same moment follow the newer ones in the order of their uuids."""
+        url = get_url_size(self.url, DEVICE_COUNT, 1)
+        response = await self.make_get(url, user.username)
+        expected = sorted(str(item.uuid) for item in many_devices) + [str(device.uuid)]
+        assert [item['uuid'] for item in response['items']] == expected
+
     async def test_device_list_another_building(self, user, device, neighbour_device):
         """Test an employee does not see the devices of another building of their company."""
         response = await self.make_get(self.url, user.username)

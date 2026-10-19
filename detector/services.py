@@ -79,8 +79,8 @@ async def reload_states(states: dict[UUID, DeviceState], kept: set[int]) -> None
     try:
         async with async_session_maker() as session:
             new_states = await DetectorSession(session).get_states()
-    except (SQLAlchemyError, OSError):
-        logger.warning('States are not reloaded: the database is unavailable', exc_info=True)
+    except (SQLAlchemyError, OSError) as error:
+        logger.warning(f'States are not reloaded: the database is unavailable: {error}')
         return
     for device_uuid, new_state in new_states.items():
         old_state = states.get(device_uuid)

@@ -2,7 +2,8 @@ from datetime import datetime, UTC
 from uuid import UUID
 
 from aiokafka import AIOKafkaProducer
-from fastapi import Depends
+from aiokafka.errors import KafkaError
+from fastapi import Depends, HTTPException
 from starlette import status
 
 from receiver.auth import current_device_uuid
@@ -21,6 +22,7 @@ telemetry_router = FastAPIRouter()
     responses=responses(
         ReadingMessageScheme,
         response_status=status.HTTP_202_ACCEPTED,
+        statuses=[status.HTTP_503_SERVICE_UNAVAILABLE],
         exclude=[status.HTTP_403_FORBIDDEN],
     ),
     status_code=status.HTTP_202_ACCEPTED,
@@ -33,5 +35,8 @@ async def send_telemetry(
 ) -> ReadingMessageScheme:
     """Send the reading of the device to the readings topic."""
     reading = ReadingMessageScheme(device_uuid=device_uuid, value=body.value, received_at=datetime.now(UTC))
-    await send_reading(producer, reading)
+    try:
+        await send_reading(producer, reading)
+    except KafkaError:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail='Broker is unavailable')
     return reading

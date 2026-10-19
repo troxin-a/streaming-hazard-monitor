@@ -68,6 +68,7 @@ class KafkaSettings(EnvSettings):
     KAFKA_TOPIC_SENSOR_READINGS: str = 'sensor-readings'
     KAFKA_TOPIC_DEVICE_LEVELS: str = 'device-levels'
     KAFKA_GROUP_THRESHOLD_DETECTOR: str = 'threshold-detector'
+    KAFKA_REQUEST_TIMEOUT_MS: int = 1000
 
 
 class ReceiverSettings(EnvSettings):

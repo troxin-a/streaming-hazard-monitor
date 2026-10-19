@@ -10,20 +10,27 @@ import {
   type Device,
   DEVICE_TYPE_LABELS,
   DEVICE_TYPE_UNITS,
+  NO_DATA_COLOR,
+  NO_DATA_LABEL,
   NORMAL_COLOR,
   NORMAL_LABEL,
 } from '@/entities/device';
 
-import { useDeviceReadings } from './deviceReadings';
+import { useDeviceOnline, useDeviceReadings } from './deviceReadings';
 import { Sparkline } from './Sparkline';
 
-/** Карточка датчика с графиком показаний на фоне цвета его уровня. */
+/** Карточка датчика с графиком показаний на фоне цвета его уровня или серого, пока датчик офлайн. */
 export function DeviceTile({ device }: { device: Device }) {
   const theme = useTheme();
   const readings = useDeviceReadings(device.uuid);
-  const color = device.level ? ALERT_LEVEL_COLORS[device.level] : NORMAL_COLOR;
-  const label = device.level ? ALERT_LEVEL_LABELS[device.level] : NORMAL_LABEL;
+  const online = useDeviceOnline(readings);
   const current = readings.at(-1);
+  let color = device.level ? ALERT_LEVEL_COLORS[device.level] : NORMAL_COLOR;
+  let label = device.level ? ALERT_LEVEL_LABELS[device.level] : NORMAL_LABEL;
+  if (!online) {
+    color = NO_DATA_COLOR;
+    label = NO_DATA_LABEL;
+  }
 
   return (
     <Paper variant="outlined" sx={{ p: 2 }}>

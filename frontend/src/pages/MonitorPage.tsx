@@ -13,6 +13,8 @@ import {
   ALERT_LEVEL_COLORS,
   ALERT_LEVEL_LABELS,
   ALERT_LEVELS,
+  NO_DATA_COLOR,
+  NO_DATA_LABEL,
   NORMAL_COLOR,
   NORMAL_LABEL,
 } from '@/entities/device';
@@ -24,6 +26,7 @@ import {
   useDeviceSubscription,
 } from '@/features/monitor/deviceSubscription';
 import { useMonitorSocket } from '@/features/monitor/monitorSocket';
+import { useConnectionState } from '@/features/monitor/useConnectionState';
 import { useDeviceLevels } from '@/features/monitor/useDeviceLevels';
 import { getErrorMessage } from '@/shared/api/client';
 import { useResourcePage } from '@/shared/api/hooks';
@@ -37,6 +40,7 @@ const LEGEND = [
     label: ALERT_LEVEL_LABELS[level],
     color: ALERT_LEVEL_COLORS[level],
   })),
+  { label: NO_DATA_LABEL, color: NO_DATA_COLOR },
 ];
 
 /** Здания страницы, сгруппированные по компаниям в порядке их первого появления. */
@@ -58,6 +62,7 @@ export function MonitorPage() {
   const subscription = useDeviceSubscription(socket);
   const readings = useDeviceReadingsStore(socket);
   useDeviceLevels(socket);
+  const connection = useConnectionState(socket);
   const [page, setPage] = useState(1);
   const { data, isPending, isError, error, refetch } = useResourcePage(buildings, {
     page,
@@ -70,7 +75,7 @@ export function MonitorPage() {
         <Typography variant="h4" component="h1">
           Монитор датчиков
         </Typography>
-        <ConnectionStatus socket={socket} />
+        <ConnectionStatus state={connection} />
       </Stack>
       <Stack direction="row" spacing={2} useFlexGap sx={{ flexWrap: 'wrap' }}>
         {LEGEND.map(({ label, color }) => (
@@ -97,16 +102,26 @@ export function MonitorPage() {
       {data && data.total > 0 && (
         <DeviceSubscriptionContext value={subscription}>
           <DeviceReadingsContext value={readings}>
-            {groupByCompany(data.items).map(({ company, buildings: companyBuildings }) => (
-              <Stack key={company.uuid} spacing={3}>
-                <Typography variant="h5" component="h2">
-                  {company.name}
-                </Typography>
-                {companyBuildings.map((building) => (
-                  <BuildingDevices key={building.uuid} building={building} />
-                ))}
-              </Stack>
-            ))}
+            {/* Пока сокет не на связи, уровни на экране могут быть устаревшими, поэтому датчики приглушаются. */}
+            <Stack
+              spacing={2}
+              sx={{
+                opacity: connection === 'connected' ? 1 : 0.4,
+                filter: connection === 'connected' ? 'none' : 'grayscale(0.6)',
+                transition: 'opacity 0.3s, filter 0.3s',
+              }}
+            >
+              {groupByCompany(data.items).map(({ company, buildings: companyBuildings }) => (
+                <Stack key={company.uuid} spacing={3}>
+                  <Typography variant="h5" component="h2">
+                    {company.name}
+                  </Typography>
+                  {companyBuildings.map((building) => (
+                    <BuildingDevices key={building.uuid} building={building} />
+                  ))}
+                </Stack>
+              ))}
+            </Stack>
             {data.pages > 1 && (
               <Pagination count={data.pages} page={page} onChange={(_, value) => setPage(value)} />
             )}

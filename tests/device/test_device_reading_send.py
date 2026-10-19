@@ -1,5 +1,6 @@
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, patch
+from uuid import UUID
 
 import pytest
 
@@ -17,16 +18,26 @@ def build_websocket() -> MagicMock:
     return websocket
 
 
+def build_websockets(watched: dict[MagicMock, set[UUID]]) -> DeviceWebSockets:
+    """Build the websockets subscribed to the devices."""
+    websockets = DeviceWebSockets()
+    for websocket, devices in watched.items():
+        websockets.add(websocket, MagicMock())
+        websockets.subscribe(websocket, devices)
+    return websockets
+
+
 class TestCaseDeviceReadingSend:
     """Device readings send test suite."""
 
     async def test_device_reading_send(self):
         """Test every websocket gets only the readings of the devices it watches."""
         first, second, idle = build_websocket(), build_websocket(), build_websocket()
-        websockets = DeviceWebSockets()
-        websockets.subscribe(first, {DEVICE_UUID})
-        websockets.subscribe(second, {DEVICE_UUID, SECOND_DEVICE_UUID})
-        websockets.subscribe(idle, {UNKNOWN_DEVICE_UUID})
+        websockets = build_websockets({
+            first: {DEVICE_UUID},
+            second: {DEVICE_UUID, SECOND_DEVICE_UUID},
+            idle: {UNKNOWN_DEVICE_UUID},
+        })
         readings = [
             build_reading(DEVICE_UUID, Decimal('10.5')),
             build_reading(SECOND_DEVICE_UUID, Decimal('12.5')),
@@ -45,8 +56,7 @@ class TestCaseDeviceReadingSend:
         """Test closed websocket is removed when the readings are sent to it."""
         closed = build_websocket()
         closed.send_json.side_effect = RuntimeError()
-        websockets = DeviceWebSockets()
-        websockets.subscribe(closed, {DEVICE_UUID})
+        websockets = build_websockets({closed: {DEVICE_UUID}})
         with patch('api.device.services.device_websockets', websockets):
             await broadcast_readings([build_reading(DEVICE_UUID)])
-        assert closed not in websockets.devices
+        assert closed not in websockets.websockets

@@ -43,7 +43,7 @@ async def consume_readings_to_websockets() -> None:
             while True:
                 await asyncio.sleep(READINGS_SEND_SECONDS)
                 batch = await consumer.getmany()
-                if device_websockets.devices:
+                if device_websockets.has_subscriptions():
                     readings = read_batch(batch, ReadingMessageScheme)
                     if readings:
                         await broadcast_readings(readings)

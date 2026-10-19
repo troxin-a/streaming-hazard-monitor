@@ -67,6 +67,7 @@ export class MonitorSocket {
   private connect(): void {
     const token = tokenStorage.get()?.access;
     if (!token) {
+      this.disconnected();
       return;
     }
     const socket = new WebSocket(socketUrl(token));
@@ -100,6 +101,11 @@ export class MonitorSocket {
       return;
     }
     window.clearTimeout(this.silenceTimer);
+    this.disconnected();
+  }
+
+  /** Сообщает подписчикам об обрыве и откладывает повторное подключение. */
+  private disconnected(): void {
     this.connectionHandlers.forEach((handler) => handler(false));
     this.reconnectTimer = window.setTimeout(() => this.connect(), RECONNECT_DELAY);
   }

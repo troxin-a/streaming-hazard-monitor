@@ -17,6 +17,7 @@ import {
   NORMAL_LABEL,
 } from '@/entities/device';
 import { BuildingDevices } from '@/features/monitor/BuildingDevices';
+import { ConnectionStatus } from '@/features/monitor/ConnectionStatus';
 import { DeviceReadingsContext, useDeviceReadingsStore } from '@/features/monitor/deviceReadings';
 import {
   DeviceSubscriptionContext,
@@ -65,9 +66,12 @@ export function MonitorPage() {
 
   return (
     <Stack spacing={2}>
-      <Typography variant="h4" component="h1">
-        Монитор датчиков
-      </Typography>
+      <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+        <Typography variant="h4" component="h1">
+          Монитор датчиков
+        </Typography>
+        <ConnectionStatus socket={socket} />
+      </Stack>
       <Stack direction="row" spacing={2} useFlexGap sx={{ flexWrap: 'wrap' }}>
         {LEGEND.map(({ label, color }) => (
           <Stack key={label} direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>

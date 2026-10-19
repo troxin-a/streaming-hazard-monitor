@@ -12,6 +12,9 @@ import type { MonitorSocket, SocketMessage } from './monitorSocket';
 /** Сколько последних показаний держит график. */
 const HISTORY = 60;
 
+/** Сколько датчик может молчать, прежде чем считаться офлайн, мс. */
+const OFFLINE_AFTER = 15000;
+
 const NO_READINGS: number[] = [];
 
 /** Показания датчиков за секунду, которые присылает сервер. */
@@ -79,4 +82,17 @@ export function useDeviceReadings(device: string): number[] {
     [readings],
   );
   return useSyncExternalStore(subscribe, () => readings?.get(device) ?? NO_READINGS);
+}
+
+/** Есть ли у датчика показания и приходили ли они за последние `OFFLINE_AFTER` мс. */
+export function useDeviceOnline(readings: number[]): boolean {
+  // Показания датчика, после которых он замолчал: каждое новое показание даёт новый массив.
+  const [silentSince, setSilentSince] = useState<number[] | null>(null);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSilentSince(readings), OFFLINE_AFTER);
+    return () => window.clearTimeout(timer);
+  }, [readings]);
+
+  return readings.length > 0 && silentSince !== readings;
 }

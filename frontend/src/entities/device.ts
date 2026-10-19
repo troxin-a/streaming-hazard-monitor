@@ -49,6 +49,10 @@ export const ALERT_LEVEL_COLORS: Record<AlertLevel, string> = {
   level_4: '#d02525',
 };
 
+/** Название и цвет датчика, от которого нет свежих показаний. */
+export const NO_DATA_LABEL = 'Нет данных';
+export const NO_DATA_COLOR = '#808080';
+
 export interface Device {
   uuid: string;
   name: string;

@@ -32,7 +32,7 @@ async def handle_message(websocket: WebSocket, user: UserDB, text: str, session:
     logger.info(f'Websocket of {user.username} is subscribed to {len(devices)} devices')
 
 
-async def send_level_changes(changes: list[LevelChangeMessageScheme]) -> None:
+async def broadcast_level_changes(changes: list[LevelChangeMessageScheme]) -> None:
     """Send the level changes of the devices to the users who are allowed to see them."""
     if not device_websockets.users:
         return
@@ -51,7 +51,7 @@ async def send_level_changes(changes: list[LevelChangeMessageScheme]) -> None:
                     await device_websockets.send(websocket, message)
 
 
-async def send_readings(readings: list[ReadingMessageScheme]) -> None:
+async def broadcast_readings(readings: list[ReadingMessageScheme]) -> None:
     """Send every websocket the readings of the devices it watches."""
     by_device: dict[UUID, list[ReadingMessageScheme]] = {}
     for reading in readings:

@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from api.device.services import send_readings
+from api.device.services import broadcast_readings
 from api.device.websocket import DeviceWebSockets
 from tests.fixtures.reading import build_reading, DEVICE_UUID, SECOND_DEVICE_UUID, UNKNOWN_DEVICE_UUID
 
@@ -33,7 +33,7 @@ class TestCaseDeviceReadingSend:
             build_reading(DEVICE_UUID, Decimal('11.5')),
         ]
         with patch('api.device.services.device_websockets', websockets):
-            await send_readings(readings)
+            await broadcast_readings(readings)
         [first_message] = [call.args[0] for call in first.send_json.await_args_list]
         [second_message] = [call.args[0] for call in second.send_json.await_args_list]
         assert first_message['type'] == 'readings'
@@ -48,5 +48,5 @@ class TestCaseDeviceReadingSend:
         websockets = DeviceWebSockets()
         websockets.subscribe(closed, {DEVICE_UUID})
         with patch('api.device.services.device_websockets', websockets):
-            await send_readings([build_reading(DEVICE_UUID)])
+            await broadcast_readings([build_reading(DEVICE_UUID)])
         assert closed not in websockets.devices

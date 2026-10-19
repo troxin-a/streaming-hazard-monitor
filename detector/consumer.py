@@ -1,10 +1,15 @@
+import logging
 from uuid import UUID
 
-from aiokafka import AIOKafkaConsumer, ConsumerRebalanceListener, TopicPartition
+from aiokafka import AIOKafkaConsumer, AIOKafkaProducer, ConsumerRebalanceListener, TopicPartition
+from aiokafka.errors import CommitFailedError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from detector.devices_state import DeviceState
-from detector.services import reload_states
-from shared.config.settings import config
+from detector.services import handle_readings, publish_and_save_level_changes, reload_states
+from detector.sessions import DetectorSession
+
+logger = logging.getLogger(__name__)
 
 
 class ConsumerRebalancer(ConsumerRebalanceListener):
@@ -25,11 +30,21 @@ class ConsumerRebalancer(ConsumerRebalanceListener):
         await reload_states(self.states, kept)
 
 
-def create_consumer() -> AIOKafkaConsumer:
-    """Create consumer of the threshold detector."""
-    return AIOKafkaConsumer(
-        bootstrap_servers=config.kafka.KAFKA_HOST,
-        group_id=config.kafka.KAFKA_GROUP_THRESHOLD_DETECTOR,
-        enable_auto_commit=False,
-        auto_offset_reset='earliest',
-    )
+async def consume_readings(
+        consumer: AIOKafkaConsumer,
+        producer: AIOKafkaProducer,
+        states: dict[UUID, DeviceState],
+        session: AsyncSession,
+) -> None:
+    """Read the readings in batches, save the level changes of every partition and commit its offset."""
+    detector_session = DetectorSession(session)
+    while True:
+        batch = await consumer.getmany(timeout_ms=1000, max_records=100)
+        for tp, messages in batch.items():
+            if messages:
+                changes = handle_readings(messages, states)
+                await publish_and_save_level_changes(changes, producer, detector_session)
+                try:
+                    await consumer.commit({tp: messages[-1].offset + 1})
+                except CommitFailedError:
+                    logger.warning(f'Offset of partition {tp} is not committed: the group has rebalanced')

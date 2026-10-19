@@ -15,7 +15,7 @@ type ConnectionHandler = (connected: boolean) => void;
 
 function socketUrl(token: string): string {
   const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-  return `${protocol}://${window.location.host}/api/device/levels/?token=${encodeURIComponent(token)}`;
+  return `${protocol}://${window.location.host}/api/device/monitor/?token=${encodeURIComponent(token)}`;
 }
 
 /** Сокет монитора: держит соединение, раздаёт сообщения сервера по типу и переподключается после обрыва. */

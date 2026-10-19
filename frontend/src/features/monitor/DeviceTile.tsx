@@ -14,22 +14,16 @@ import {
   NORMAL_LABEL,
 } from '@/entities/device';
 
+import { useDeviceReadings } from './deviceReadings';
 import { Sparkline } from './Sparkline';
-import { useMockReadings } from './useMockReadings';
-
-interface DeviceTileProps {
-  device: Device;
-  /** Номер текущей секунды, общий для всех карточек страницы. */
-  tick: number;
-}
 
 /** Карточка датчика с графиком показаний на фоне цвета его уровня. */
-export function DeviceTile({ device, tick }: DeviceTileProps) {
+export function DeviceTile({ device }: { device: Device }) {
   const theme = useTheme();
-  const readings = useMockReadings(device.uuid, tick);
+  const readings = useDeviceReadings(device.uuid);
   const color = device.level ? ALERT_LEVEL_COLORS[device.level] : NORMAL_COLOR;
   const label = device.level ? ALERT_LEVEL_LABELS[device.level] : NORMAL_LABEL;
-  const current = readings[readings.length - 1];
+  const current = readings.at(-1);
 
   return (
     <Paper variant="outlined" sx={{ p: 2 }}>
@@ -56,14 +50,11 @@ export function DeviceTile({ device, tick }: DeviceTileProps) {
       >
         <Sparkline values={readings} />
       </Box>
-      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <Typography variant="h6" component="span">
-          {current.toFixed(1)} {DEVICE_TYPE_UNITS[device.type]}
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
-          демо-данные
-        </Typography>
-      </Stack>
+      <Typography variant="h6" component="span">
+        {current === undefined
+          ? 'нет данных'
+          : `${current.toFixed(1)} ${DEVICE_TYPE_UNITS[device.type]}`}
+      </Typography>
     </Paper>
   );
 }

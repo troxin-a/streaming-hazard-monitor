@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Self
+from typing import Literal, Self
 from uuid import UUID
 
 from pydantic import Field, model_validator
@@ -8,6 +8,7 @@ from pydantic import Field, model_validator
 from shared.base.schemes import BaseScheme
 from shared.building.schemes import BuildingScheme
 from shared.device.enums import AlertLevel, DeviceType
+from shared.reading.schemes import ReadingMessageScheme
 
 
 class DeviceScheme(BaseScheme):
@@ -27,9 +28,22 @@ class DeviceListScheme(DeviceScheme):
 
 class DeviceLevelScheme(BaseScheme):
     """Level of a device sent over the websocket scheme."""
+    type: Literal['level'] = 'level'
     device_uuid: UUID
     level: AlertLevel | None
     changed_at: datetime
+
+
+class DeviceReadingsScheme(BaseScheme):
+    """Readings of the devices sent over the websocket scheme."""
+    type: Literal['readings'] = 'readings'
+    items: list[ReadingMessageScheme]
+
+
+class DeviceSubscribeScheme(BaseScheme):
+    """Devices the client watches sent over the websocket scheme."""
+    type: Literal['subscribe']
+    devices: list[UUID] = Field(max_length=100)
 
 
 class DeviceAPIKeyScheme(BaseScheme):

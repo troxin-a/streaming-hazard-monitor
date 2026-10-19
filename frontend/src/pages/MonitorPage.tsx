@@ -17,8 +17,13 @@ import {
   NORMAL_LABEL,
 } from '@/entities/device';
 import { BuildingDevices } from '@/features/monitor/BuildingDevices';
+import { DeviceReadingsContext, useDeviceReadingsStore } from '@/features/monitor/deviceReadings';
+import {
+  DeviceSubscriptionContext,
+  useDeviceSubscription,
+} from '@/features/monitor/deviceSubscription';
+import { useMonitorSocket } from '@/features/monitor/monitorSocket';
 import { useDeviceLevels } from '@/features/monitor/useDeviceLevels';
-import { useSecondTick } from '@/features/monitor/useMockReadings';
 import { getErrorMessage } from '@/shared/api/client';
 import { useResourcePage } from '@/shared/api/hooks';
 
@@ -48,8 +53,10 @@ function groupByCompany(items: Building[]): { company: Company; buildings: Build
 }
 
 export function MonitorPage() {
-  useDeviceLevels();
-  const tick = useSecondTick();
+  const socket = useMonitorSocket();
+  const subscription = useDeviceSubscription(socket);
+  const readings = useDeviceReadingsStore(socket);
+  useDeviceLevels(socket);
   const [page, setPage] = useState(1);
   const { data, isPending, isError, error, refetch } = useResourcePage(buildings, {
     page,
@@ -84,21 +91,23 @@ export function MonitorPage() {
       )}
       {data && data.total === 0 && <Typography color="text.secondary">Зданий нет.</Typography>}
       {data && data.total > 0 && (
-        <>
-          {groupByCompany(data.items).map(({ company, buildings: companyBuildings }) => (
-            <Stack key={company.uuid} spacing={3}>
-              <Typography variant="h5" component="h2">
-                {company.name}
-              </Typography>
-              {companyBuildings.map((building) => (
-                <BuildingDevices key={building.uuid} building={building} tick={tick} />
-              ))}
-            </Stack>
-          ))}
-          {data.pages > 1 && (
-            <Pagination count={data.pages} page={page} onChange={(_, value) => setPage(value)} />
-          )}
-        </>
+        <DeviceSubscriptionContext value={subscription}>
+          <DeviceReadingsContext value={readings}>
+            {groupByCompany(data.items).map(({ company, buildings: companyBuildings }) => (
+              <Stack key={company.uuid} spacing={3}>
+                <Typography variant="h5" component="h2">
+                  {company.name}
+                </Typography>
+                {companyBuildings.map((building) => (
+                  <BuildingDevices key={building.uuid} building={building} />
+                ))}
+              </Stack>
+            ))}
+            {data.pages > 1 && (
+              <Pagination count={data.pages} page={page} onChange={(_, value) => setPage(value)} />
+            )}
+          </DeviceReadingsContext>
+        </DeviceSubscriptionContext>
       )}
     </Stack>
   );

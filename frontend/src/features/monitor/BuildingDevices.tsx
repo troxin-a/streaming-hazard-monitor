@@ -11,25 +11,21 @@ import type { Building } from '@/entities/building';
 import { devices, listBuildingDevices } from '@/entities/device';
 import { getErrorMessage } from '@/shared/api/client';
 
+import { useWatchDevices } from './deviceSubscription';
 import { DeviceTile } from './DeviceTile';
 
 /** Карточек датчиков на странице здания. */
 const PAGE_SIZE = 12;
 
-interface BuildingDevicesProps {
-  building: Building;
-  /** Номер текущей секунды, общий для всех карточек страницы. */
-  tick: number;
-}
-
 /** Датчики здания карточками со своей постраничной загрузкой. */
-export function BuildingDevices({ building, tick }: BuildingDevicesProps) {
+export function BuildingDevices({ building }: { building: Building }) {
   const [page, setPage] = useState(1);
   const { data, isPending, isError, error } = useQuery({
     queryKey: [devices.key, 'monitor', building.uuid, page],
     queryFn: () => listBuildingDevices(building.uuid, page, PAGE_SIZE),
     placeholderData: keepPreviousData,
   });
+  useWatchDevices(building.uuid, data?.items.map((device) => device.uuid) ?? []);
 
   return (
     <Stack spacing={1.5}>
@@ -51,7 +47,7 @@ export function BuildingDevices({ building, tick }: BuildingDevicesProps) {
             }}
           >
             {data.items.map((device) => (
-              <DeviceTile key={device.uuid} device={device} tick={tick} />
+              <DeviceTile key={device.uuid} device={device} />
             ))}
           </Box>
           {data.pages > 1 && (

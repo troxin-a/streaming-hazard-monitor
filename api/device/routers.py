@@ -9,7 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from api.auth.auth import current_director, JWTBearer, websocket_user
-from api.device.websocket import level_websockets
+from api.device.services import handle_message
+from api.device.websocket import device_websockets
 from api.device.sessions import DeviceSession, ThresholdSession
 from api.device.urls import device_url
 from shared.base.responses import responses
@@ -238,9 +239,12 @@ async def device_levels(
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
     await websocket.accept()
-    level_websockets.add(websocket, user)
+    device_websockets.add(websocket, user)
     try:
         while True:
-            await websocket.receive_text()
+            text = await websocket.receive_text()
+            await handle_message(websocket, user, text, session)
     except WebSocketDisconnect:
-        level_websockets.remove(websocket)
+        return
+    finally:
+        device_websockets.remove(websocket)

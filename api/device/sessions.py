@@ -41,7 +41,7 @@ class DeviceSession(BaseSession):
                 select(DeviceDB)
                 .outerjoin(AlertDB, and_(AlertDB.device_uuid == DeviceDB.uuid, AlertDB.ended_at.is_(None)))
                 .where(self._visible(user))
-                .order_by(DeviceDB.created_at.desc())
+                .order_by(DeviceDB.created_at.desc(), DeviceDB.uuid)
             )
             if search:
                 pattern = f'%{search}%'
@@ -128,6 +128,12 @@ class DeviceSession(BaseSession):
                 .where(DeviceDB.uuid.in_(uuids))
             )
             return {row.uuid: row for row in await self.session.execute(query)}
+
+    async def get_visible_device_uuids(self, user: UserDB, uuids: set[UUID]) -> set[UUID]:
+        """Get the uuids of the existing devices among the uuids the user is allowed to see."""
+        async with self.session.begin():
+            query = select(DeviceDB.uuid).where(DeviceDB.uuid.in_(uuids), self._visible(user))
+            return set(await self.session.scalars(query))
 
     async def _previous_key_hash(self, query: Update) -> str | None:
         """Return the api key hash stored before the update or raise not found."""

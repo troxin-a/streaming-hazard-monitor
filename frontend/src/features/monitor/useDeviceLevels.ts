@@ -2,14 +2,13 @@ import { type QueryClient, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 
 import { type AlertLevel, type Device, devices } from '@/entities/device';
-import { tokenStorage } from '@/shared/api/tokenStorage';
 import type { Page } from '@/shared/api/resource';
 
-/** Пауза перед повторным подключением после обрыва, мс. */
-const RECONNECT_DELAY = 3000;
+import type { MonitorSocket, SocketMessage } from './monitorSocket';
 
 /** Смена уровня датчика, которую присылает сервер. */
-interface DeviceLevelMessage {
+interface DeviceLevelMessage extends SocketMessage {
+  type: 'level';
   device_uuid: string;
   level: AlertLevel | null;
   /** Время приёма показания, на котором сменился уровень. */
@@ -35,56 +34,28 @@ function applyLevel(queryClient: QueryClient, message: DeviceLevelMessage): void
   });
 }
 
-function levelsUrl(token: string): string {
-  const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-  return `${protocol}://${window.location.host}/api/device/levels/?token=${encodeURIComponent(token)}`;
-}
-
 /**
- * Держит открытым сокет уровней датчиков и обновляет по нему загруженные страницы датчиков.
- * После обрыва переподключается и перечитывает страницы, чтобы не потерять смены за время обрыва.
+ * Обновляет загруженные страницы датчиков по сменам уровня из сокета монитора.
+ * После обрыва и переподключения перечитывает страницы, чтобы не потерять смены за время обрыва.
  */
-export function useDeviceLevels(): void {
+export function useDeviceLevels(socket: MonitorSocket): void {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    let socket: WebSocket | null = null;
-    let reconnectTimer: number | undefined;
-    let stopped = false;
     let wasConnected = false;
-
-    function connect(): void {
-      const token = tokenStorage.get()?.access;
-      if (!token) {
-        return;
-      }
-      socket = new WebSocket(levelsUrl(token));
-      socket.onopen = () => {
-        if (wasConnected) {
-          void queryClient.invalidateQueries({ queryKey: [devices.key] });
-        }
-        wasConnected = true;
-      };
-      socket.onmessage = (event: MessageEvent<string>) => {
-        applyLevel(queryClient, JSON.parse(event.data) as DeviceLevelMessage);
-      };
-      socket.onclose = () => {
-        if (stopped) {
-          return;
-        }
-        // Смены за время обрыва не придут: при следующем подключении страницы перечитаются.
-        wasConnected = true;
-        // Перечитывание заодно обновит истёкший access-токен для следующей попытки.
+    const offMessage = socket.onMessage('level', (message) => {
+      applyLevel(queryClient, message as DeviceLevelMessage);
+    });
+    const offConnection = socket.onConnectionChange((connected) => {
+      // При обрыве перечитывание заодно обновит истёкший access-токен для следующей попытки.
+      if (!connected || wasConnected) {
         void queryClient.invalidateQueries({ queryKey: [devices.key] });
-        reconnectTimer = window.setTimeout(connect, RECONNECT_DELAY);
-      };
-    }
-
-    connect();
+      }
+      wasConnected = true;
+    });
     return () => {
-      stopped = true;
-      window.clearTimeout(reconnectTimer);
-      socket?.close();
+      offMessage();
+      offConnection();
     };
-  }, [queryClient]);
+  }, [socket, queryClient]);
 }

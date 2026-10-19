@@ -1,6 +1,7 @@
 import json
 
 import pytest
+from aiokafka.errors import KafkaTimeoutError, NodeNotReadyError
 from httpx import ASGITransport
 from starlette import status
 
@@ -56,6 +57,15 @@ class TestCaseTelemetryCreate(BaseTestCase):
         response = await self.make_post(self.url, None, {'value': '37.5'}, status.HTTP_401_UNAUTHORIZED, headers)
         assert response['detail'] == 'Invalid api key'
         telemetry_producer.send_and_wait.assert_not_awaited()
+
+    @pytest.mark.parametrize('error', [KafkaTimeoutError, NodeNotReadyError])
+    async def test_telemetry_create_broker_unavailable(self, device_keys, telemetry_producer, error):
+        """Test reading is rejected as unavailable when the broker does not accept it."""
+        telemetry_producer.send_and_wait.side_effect = error()
+        response = await self.make_post(
+            self.url, None, {'value': '37.5'}, status.HTTP_503_SERVICE_UNAVAILABLE, self.headers,
+        )
+        assert response['detail'] == 'Broker is unavailable'
 
     @pytest.mark.parametrize('data', [
         {},

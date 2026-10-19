@@ -7,6 +7,7 @@ import pytest
 from aiokafka import ConsumerRecord, TopicPartition
 
 from api.device.consumer import consume_readings_to_websockets, READINGS_SEND_SECONDS
+from api.device.websocket import DeviceWebSockets
 from shared.config.settings import config
 from tests.fixtures.reading import build_record, build_reading_record, DEVICE_UUID, SECOND_DEVICE_UUID
 
@@ -25,10 +26,13 @@ def build_consumer(*batches: list[ConsumerRecord]) -> MagicMock:
     return consumer
 
 
-def build_websockets(*watched: UUID) -> MagicMock:
+def build_websockets(*watched: UUID) -> DeviceWebSockets:
     """Build the websockets with one websocket watching the devices or without websockets when none is given."""
-    websockets = MagicMock()
-    websockets.devices = {MagicMock(): set(watched)} if watched else {}
+    websockets = DeviceWebSockets()
+    if watched:
+        websocket = MagicMock()
+        websockets.add(websocket, MagicMock())
+        websockets.subscribe(websocket, set(watched))
     return websockets
 
 

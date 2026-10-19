@@ -38,8 +38,8 @@ async def handle_message(websocket: WebSocket, user: UserDB, text: str, session:
 
 async def ping_idle_websocket(websocket: WebSocket) -> None:
     """Send the ping to the websocket every time nothing has been sent to it for the ping interval."""
-    while websocket in device_websockets.sent_at:
-        idle = time.time() - device_websockets.sent_at[websocket]
+    while (state := device_websockets.websockets.get(websocket)) is not None:
+        idle = time.time() - state.sent_at
         if idle >= PING_SECONDS:
             await device_websockets.send(websocket, DevicePingScheme().model_dump(mode='json'))
         else:
@@ -48,7 +48,7 @@ async def ping_idle_websocket(websocket: WebSocket) -> None:
 
 async def broadcast_level_changes(changes: list[LevelChangeMessageScheme]) -> None:
     """Send the level changes of the devices to the users who are allowed to see them."""
-    if not device_websockets.users:
+    if not device_websockets.websockets:
         return
     try:
         async with async_session_maker() as session:
@@ -60,8 +60,8 @@ async def broadcast_level_changes(changes: list[LevelChangeMessageScheme]) -> No
         place = places.get(change.device_uuid)
         if place is not None:
             message = DeviceLevelScheme.model_validate(change, from_attributes=True).model_dump(mode='json')
-            for websocket, user in list(device_websockets.users.items()):
-                if user.can_see_building(place.building_uuid, place.company_uuid):
+            for websocket, state in list(device_websockets.websockets.items()):
+                if state.user.can_see_building(place.building_uuid, place.company_uuid):
                     await device_websockets.send(websocket, message)
 
 
@@ -70,7 +70,7 @@ async def broadcast_readings(readings: list[ReadingMessageScheme]) -> None:
     by_device: dict[UUID, list[ReadingMessageScheme]] = {}
     for reading in readings:
         by_device.setdefault(reading.device_uuid, []).append(reading)
-    for websocket, devices in list(device_websockets.devices.items()):
-        items = [reading for device in devices for reading in by_device.get(device, [])]
+    for websocket, state in list(device_websockets.websockets.items()):
+        items = [reading for device in state.devices for reading in by_device.get(device, [])]
         if items:
             await device_websockets.send(websocket, DeviceReadingsScheme(items=items).model_dump(mode='json'))

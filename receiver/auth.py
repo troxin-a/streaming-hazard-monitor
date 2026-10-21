@@ -10,7 +10,7 @@ from shared.device.services import hash_api_key
 api_key_header = APIKeyHeader(name='X-API-Key', auto_error=False)
 
 
-def get_devices(request: Request) -> dict[str, UUID]:
+async def get_devices(request: Request) -> dict[str, UUID]:
     """Return device uuids by the hashes of their api keys loaded by the running application."""
     return request.state.devices
 

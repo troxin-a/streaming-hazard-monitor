@@ -5,7 +5,7 @@ from shared.config.settings import config
 from shared.reading.schemes import ReadingMessageScheme
 
 
-def get_producer(request: Request) -> AIOKafkaProducer:
+async def get_producer(request: Request) -> AIOKafkaProducer:
     """Return producer of the running application."""
     return request.state.telemetry_producer
 

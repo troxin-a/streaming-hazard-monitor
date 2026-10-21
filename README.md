@@ -26,7 +26,7 @@
 ## Архитектура
 
 ```mermaid
-flowchart LR
+flowchart TD
     sensors[датчики] --> receiver --> kafka[(Kafka)]
     kafka --> detector --> postgres[(Postgres)]
     detector --> kafka

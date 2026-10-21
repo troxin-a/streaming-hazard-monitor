@@ -31,7 +31,7 @@ flowchart TD
     kafka --> detector --> postgres[(Postgres)]
     detector --> kafka
     kafka --> api --> browser[браузер]
-    api --> postgres
+    api <--> postgres
 ```
 
 | Сервис | Роль |
